@@ -1,0 +1,17 @@
+Compiling src/passage.c -> obj/passage.o
+clang -I/opt/homebrew/include -Iinclude -std=c11 -g -Wall -Wextra -c src/passage.c -o obj/passage.o
+Linking → bin/main
+clang -I/opt/homebrew/include -Iinclude -std=c11 -g -Wall -Wextra obj/bibles.o obj/books.o obj/curl_handle.o obj/main.o obj/passage.o -o bin/main -lcjson -lcurl -L/opt/homebrew/lib
+Executing all complete
+bin/main
+C Web Testing - GET Requests from API's
+Reading data from ./info/bibles.json
+Bible Books are already saved in ./info/books.json
+Please Input a Passage: Matthew 5:12-0:0 (WEB)
+Performing a GET request at https://api.scripture.api.bible/v1/bibles/9879dbb7cfe39e4d-01/passages/MAT.5.12?content-type=text&include-notes=false&include-titles=true&include-chapter-numbers=false&include-verse-numbers=true&include-verse-spans=false&use-org-id=false
+string retrieved: {"data":{"id":"MAT.5.12","orgId":"MAT.5.12","bibleId":"9879dbb7cfe39e4d-01","bookId":"MAT","chapterIds":["MAT.5"],"reference":"Matthew 5:12","content":"     [12] Rejoice, and be exceedingly glad, for great is your reward in heaven. For that is how they persecuted the prophets who were before you. \n","verseCount":1,"copyright":"\n          PUBLIC DOMAIN\n        "},"meta":{"fums":"<script>\nvar _BAPI=_BAPI||{};\nif(typeof(_BAPI.t)==='undefined'){\ndocument.write('\\x3Cscript src=\"'+document.location.protocol+'//cdn.scripture.api.bible/fums/fumsv2.min.js\"\\x3E\\x3C/script\\x3E');}\ndocument.write(\"\\x3Cscript\\x3E_BAPI.t('77bab84f-7a73-403b-9b1b-c9ab3bb39be9');\\x3C/script\\x3E\");\n</script><noscript><img src=\"https://d3a2okcloueqyx.cloudfront.net/nf1?t='77bab84f-7a73-403b-9b1b-c9ab3bb39be9'\" height=\"1\" width=\"1\" border=\"0\" alt=\"\" style=\"height: 0; width: 0;\" /></noscript>","fumsId":"77bab84f-7a73-403b-9b1b-c9ab3bb39be9","fumsJsInclude":"cdn.scripture.api.bible/fums/fumsv2.min.js","fumsJs":"var _BAPI=_BAPI||{};if(typeof(_BAPI.t)!='undefined'){ _BAPI.t('77bab84f-7a73-403b-9b1b-c9ab3bb39be9'); }","fumsNoScript":"<img src=\"https://d3btgtzu3ctdwx.cloudfront.net/nf1?t=77bab84f-7a73-403b-9b1b-c9ab3bb39be9\" height=\"1\" width=\"1\" border=\"0\" alt=\"\" style=\"height: 0; width: 0;\" />"}}
+-------------------------------------------
+Matthew 5:12
+
+     [12] Rejoice, and be exceedingly glad, for great is your reward in heaven. For that is how they persecuted the prophets who were before you. 
+-------------------------------------------

@@ -1,0 +1,27 @@
+{
+	"passages":	[{
+			"id":	"MAT.5.2-MAT.5.12",
+			"message":	"The characteristics of the blessed.",
+			"context":	"The Beatitudes and The Sermon on The Mount"
+		}, {
+			"id":	"ROM.8.28",
+			"message":	"Divine providence and spiritual comfort.",
+			"context":	"St. Paul on spiritual combat and the promise of future glory."
+		}, {
+			"id":	"PRO.26.4-PRO.26.5",
+			"message":	"Answering a fool's folly.",
+			"context":	"Wisdom and discerning foolishness."
+		}, {
+			"id":	"PHP.4.6-PHP.4.7",
+			"message":	"Letting go of anxiety and instead praying to God and trusting in Him. God's peace surpasses all understanding.",
+			"context":	"St. Paul's exhorations to the Phillipians."
+		}, {
+			"id":	"ROM.3.20",
+			"message":	"The Mirror that is the Law",
+			"context":	"St. Paul on the doctrine of salvation."
+		}, {
+			"id":	"1CO.3.7",
+			"message":	"A recognition of God's supremacy and His goodness. A person should not be followed as God is and divisions should not be spread because one person is evangelized by one instead of another. Rather, everyone should follow God in the best way possible, not simply the people who led them to Him.",
+			"context":	"People in Corinth who caused divisions by claiming to follow preachers rather than the One whom they were preaching."
+		}]
+}

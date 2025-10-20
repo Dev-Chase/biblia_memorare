@@ -1,0 +1,46 @@
+[
+ {
+  "directory": "/Users/chase/Coding/C/biblia_memorare",
+  "arguments": [
+   "clang",
+   "-I/opt/homebrew/include",
+   "-Iinclude",
+   "-std=c11",
+   "-g",
+   "-Wall",
+   "-Wextra",
+   "-Iinclude",
+   "-std=c11",
+   "-g",
+   "-Wall",
+   "-Wextra",
+   "-c",
+   "src/curl_handle.c",
+   "-o",
+   "obj/curl_handle.o"
+  ],
+  "file": "src/curl_handle.c"
+ },
+ {
+  "directory": "/Users/chase/Coding/C/biblia_memorare",
+  "arguments": [
+   "clang",
+   "-I/opt/homebrew/include",
+   "-Iinclude",
+   "-std=c11",
+   "-g",
+   "-Wall",
+   "-Wextra",
+   "-Iinclude",
+   "-std=c11",
+   "-g",
+   "-Wall",
+   "-Wextra",
+   "-c",
+   "src/main.c",
+   "-o",
+   "obj/main.o"
+  ],
+  "file": "src/main.c"
+ }
+]
