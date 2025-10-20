@@ -1,6 +1,7 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+#include "app.h"
 #include <cjson/cJSON.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -12,7 +13,7 @@ extern "C" {
 
 typedef struct InputOption InputOption;
 
-typedef void (*OptionFn)(InputOption *self);
+typedef bool (*OptionFn)(InputOption *self, AppEnv env);
 typedef void (*OptionPrintDescFn)(void);
 typedef bool (*OptionInputCheckFn)(char input_buff[static INPUT_BUFF_LEN]);
 
@@ -56,7 +57,7 @@ void input_get(const char *message, char input_buff[static INPUT_BUFF_LEN]);
 // Handling Input
 void input_switch_option(InputOption *current_opt, const InputOption *new_opt);
 void input_process(InputOption *current_option,
-                   char input_buff[static INPUT_BUFF_LEN]);
+                   char input_buff[static INPUT_BUFF_LEN], AppEnv env);
 
 #ifdef _cplusplus
 }

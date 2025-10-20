@@ -40,6 +40,16 @@ int main(void) {
       books_get_from_bible_version(curl, &curl_res, bible_version.id);
   cJSON *passages_json = passages_get_json();
 
+  // Creating Application Environment
+  AppEnv app_env = {
+      .curl = curl,
+      .curl_code = &curl_res,
+      .bibles_arr = bibles_arr,
+      .books_arr = &books_arr,
+      .bible_version = &bible_version,
+      .saved_passages_json = passages_json,
+  };
+
   // Input Options:
   //  1. Show Input Options
   //  2. Retrieve a Passage from the Bible
@@ -60,24 +70,18 @@ int main(void) {
   //  7.
 
   InputOption current_option = GLOBAL_INPUT_OPTION;
-  current_option.exec(&current_option);
+  current_option.exec(&current_option, app_env);
   char input_buff[INPUT_BUFF_LEN] = "\0";
 
-  // TODO: add printing instructions/info option that is always available (maybe
-  // make this one not an InputOption and instead just a function that can be
-  // called from any InputOption)
-  while (true) {
-    // Print Directions ()
-    input_print_options_list(current_option.n_sub_options,
-                             current_option.sub_options);
+  input_print_options_list(current_option.n_sub_options,
+                           current_option.sub_options);
 
+  while (true) {
     // Get Input
     input_get("Input Here: ", input_buff);
 
     // Process Input (redirect to appropriate functions)
-    printf("Input received: %s\n", input_buff);
-    printf("Processing input:\n");
-    input_process(&current_option, input_buff);
+    input_process(&current_option, input_buff, app_env);
   }
 
   // Getting a Passage Based on Input
