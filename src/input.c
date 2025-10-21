@@ -1,41 +1,54 @@
 #include "input.h"
 #include "passage.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+const InputOption GLOBAL_INPUT_OPTION;
+static const InputOption GET_PASSAGE_OPTION;
+static const InputOption SAVE_PASSAGE_OPTION;
 
 // Input Option Specifics
 // Getting a Passage from the Bible
 void get_passage_option_print_desc(void) {
-  puts("passage/passage get - Retrieve a Passage from the Bible");
+  puts("get/passage get - Get a Passage from the Bible");
 }
 
+// TODO: figure out why a passage with a range of verses is not being retrieved, but only the first verse when going here after saving
 bool get_passage_option_fn(InputOption *current_opt, AppEnv env) {
   PassageInfo passage = {0};
   cJSON *passage_data = NULL;
-  if (passage_info_get_from_input(&passage, env.curl, env.curl_code,
-                                  env.bible_version, env.bibles_arr,
-                                  env.books_arr)) {
-    passage_data =
-        passage_get_data(passage, env.curl, env.curl_code, *env.bible_version);
+
+  if (current_opt->data.type == SavedPassageId) {
+    passage_get_info_from_id(current_opt->data.value.passage_id, &passage);
+  } else {
+    if (!passage_info_get_from_input(&passage, env.curl, env.curl_code,
+                                     env.bible_version, env.bibles_arr,
+                                     env.books_arr)) {
+      return false;
+    }
   }
 
+  passage_data =
+      passage_get_data(passage, env.curl, env.curl_code, *env.bible_version);
   if (passage_data != NULL) {
+    // Printing Passage Text
     passage_print_text(passage_data, env.bible_version->abbr);
-    // passage_save_input(passage, env.saved_passages_json);
-    // puts("---------------------------------------------------");
-    // passage_print_reference(passage, *env.books_arr, true);
-    // TODO: figure out when passage_data should be deleted (I think it should
-    // instead be put into current_opt->data, but I would need to be careful to
-    // watch out for memory leaks)
+
+    // Saving PassageID to current_opt
+    current_opt->data.type = RetrievedPassageId;
+    passage_get_id(passage, current_opt->data.value.passage_id);
+
     cJSON_Delete(passage_data);
     return true;
   }
 
+  current_opt->data.type = NoData;
   return false;
 }
 
 bool get_passage_option_input_check(char input_buff[static INPUT_BUFF_LEN]) {
-  return (strcmp(input_buff, "passage") == 0) ||
+  return (strcmp(input_buff, "get") == 0) ||
          (strcmp(input_buff, "passage get") == 0);
 }
 
@@ -43,38 +56,58 @@ static const InputOption GET_PASSAGE_OPTION = {
     .exec = get_passage_option_fn,
     .print_desc = get_passage_option_print_desc,
     .input_check = get_passage_option_input_check,
-    .n_sub_options = 1,
-    .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
-};
+    .n_sub_options = 3,
+    .sub_options =
+        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+                                &SAVE_PASSAGE_OPTION},
+    .data = {0}};
 
-// Testing
-void test_option_print_desc(void) { puts("test - This is a test option"); }
+// Saving a Passage ID
+void save_passage_option_print_desc(void) {
+  puts("save/passage save - Save a Passage");
+}
 
-bool test_option_fn() {
-  puts("Test Option Executed!");
+bool save_passage_option_fn(InputOption *current_opt, AppEnv env) {
+  if (current_opt->data.type == RetrievedPassageId) {
+    if (passage_save_input(current_opt->data.value.passage_id,
+                           env.saved_passages_json)) {
+      current_opt->data.type = SavedPassageId;
+    }
+    return false;
+  }
+
+  if (passage_get_save(current_opt->data.value.passage_id, env.curl,
+                       env.curl_code, env.bible_version, env.bibles_arr,
+                       env.books_arr, env.saved_passages_json)) {
+    current_opt->data.type = SavedPassageId;
+  } else {
+    current_opt->data.type = NoData;
+  }
+
   return true;
 }
 
-bool test_option_input_check(char input_buff[static INPUT_BUFF_LEN]) {
-  return (strcmp(input_buff, "test") == 0);
+bool save_passage_option_input_check(char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "save") == 0) ||
+         (strcmp(input_buff, "passage save") == 0);
 }
 
-static const InputOption TEST_OPTION = {
-    .exec = test_option_fn,
-    .print_desc = test_option_print_desc,
-    .input_check = test_option_input_check,
+static const InputOption SAVE_PASSAGE_OPTION = {
+    .exec = save_passage_option_fn,
+    .print_desc = save_passage_option_print_desc,
+    .input_check = save_passage_option_input_check,
     .n_sub_options = 2,
     .sub_options =
         (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION},
-};
+    .data = {0}};
 
 // Global Option
 void global_option_print_desc(void) {
   puts("root/global/home - Go back to application home");
 }
 
-bool global_option_fn() {
-  puts("You're home!");
+bool global_option_fn(InputOption *current_opt, AppEnv _) {
+  current_opt->data.type = NoData;
   return true;
 }
 
@@ -88,12 +121,13 @@ const InputOption GLOBAL_INPUT_OPTION = {
     .exec = global_option_fn,
     .print_desc = global_option_print_desc,
     .input_check = global_option_input_check,
-    .n_sub_options = 1,
-    .sub_options = (const InputOption *[]){&TEST_OPTION},
-};
+    .n_sub_options = 2,
+    .sub_options =
+        (const InputOption *[]){&GET_PASSAGE_OPTION, &SAVE_PASSAGE_OPTION},
+    .data = {0}};
 
 void input_show_options_desc(void) {
-  printf("info/help - See Available Options\n");
+  printf("info/help/list - List Available Options\n");
 }
 
 // Directions
@@ -106,6 +140,7 @@ void input_print_options_list(
   for (size_t i = 0; i < n_sub_options; i++) {
     input_options[i]->print_desc();
   }
+  printf("exit - Exit Program\n");
   puts("---------------------");
 }
 
@@ -130,7 +165,12 @@ void input_switch_option(InputOption *current_opt, const InputOption *new_opt) {
 }
 
 bool input_info_req_check(char input_buff[static INPUT_BUFF_LEN]) {
-  return (strcmp(input_buff, "info") == 0) || (strcmp(input_buff, "help") == 0);
+  return (strcmp(input_buff, "info") == 0) ||
+         (strcmp(input_buff, "help") == 0) || (strcmp(input_buff, "list") == 0);
+}
+
+bool exit_req_check(char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "exit") == 0);
 }
 
 void input_process(InputOption *current_option,
@@ -142,6 +182,12 @@ void input_process(InputOption *current_option,
     return;
   }
 
+  if (exit_req_check(input_buff)) {
+    puts("Exiting program");
+    exit(EXIT_SUCCESS);
+    return;
+  }
+
   size_t i = 0;
   for (; i < current_option->n_sub_options; i++) {
     if (current_option->sub_options[i]->input_check(input_buff)) {
@@ -150,7 +196,8 @@ void input_process(InputOption *current_option,
   }
 
   if (i == current_option->n_sub_options) {
-    printf("%s is not a valid option, enter 'info' or 'help' to see available "
+    printf("%s is not a valid option, enter 'info' or 'help' or 'list' to see "
+           "available "
            "options\n",
            input_buff);
     return;

@@ -53,9 +53,8 @@ int main(void) {
   // Input Options:
   //  1. Show Input Options
   //  2. Retrieve a Passage from the Bible
-  //    a) Save passage (if not saved)
-  //      or
-  //    a) Get Saved Passage Object (if already saved)
+  //    a) Save passage
+  //    g) Get Saved Passage Object
   //  3. Search for a saved passage
   //    Options if one is found:
   //    a) show specified meaning
@@ -75,12 +74,11 @@ int main(void) {
 
   input_print_options_list(current_option.n_sub_options,
                            current_option.sub_options);
-
   while (true) {
     // Get Input
     input_get("Input Here: ", input_buff);
 
-    // Process Input (redirect to appropriate functions)
+    // Process Input
     input_process(&current_option, input_buff, app_env);
   }
 
@@ -94,7 +92,11 @@ int main(void) {
 
   if (passage_data != NULL) {
     passage_print_text(passage_data, bible_version.abbr);
-    passage_save_input(passage, passages_json);
+
+    PassageId passage_id;
+    passage_get_id(passage, passage_id);
+    passage_save_input(passage_id, passages_json);
+
     puts("---------------------------------------------------");
     passage_print_reference(passage, books_arr, true);
     cJSON_Delete(passage_data);

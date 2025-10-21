@@ -286,11 +286,8 @@ cJSON *passages_get_json(void) {
   return root;
 }
 
-void passage_save(PassageInfo passage, char *message, char *context,
+void passage_save(PassageId passage_id, char *message, char *context,
                   cJSON *passages_json) {
-  PassageId passage_id;
-  passage_get_id(passage, passage_id);
-
   if (passages_get_by_id(passages_json, passage_id) != NULL) {
     printf("Passage %s is already saved in " PASSAGES_FILE "\n", passage_id);
     return;
@@ -321,19 +318,10 @@ void passage_save(PassageInfo passage, char *message, char *context,
   fclose(file);
 }
 
-void passage_save_input(PassageInfo passage, cJSON *passages_json) {
-  printf("Would you like to save this passage? (y/n): ");
-  char ch;
-  scanf("%c", &ch);
-  if (!(ch == 'y' || ch == 'Y')) {
-    return;
-  }
-
-  PassageId passage_id;
-  passage_get_id(passage, passage_id);
+bool passage_save_input(PassageId passage_id, cJSON *passages_json) {
   if (passages_get_by_id(passages_json, passage_id) != NULL) {
     printf("Passage %s is already saved in " PASSAGES_FILE "\n", passage_id);
-    return;
+    return false;
   }
 
   char message_buff[PASSAGE_MESSAGE_BUFF_SIZE];
@@ -343,6 +331,7 @@ void passage_save_input(PassageInfo passage, cJSON *passages_json) {
   printf("What message would you like to save for this passage?: ");
   scanf("\n");
   fgets(message_buff, PASSAGE_MESSAGE_BUFF_SIZE, stdin);
+  // TODO: figure out what happens when an exceedingly large input is given and there is no \n character
   message_buff[strcspn(message_buff, "\n")] = '\0'; // Remove '\n'
   fflush(stdout);
 
@@ -353,16 +342,21 @@ void passage_save_input(PassageInfo passage, cJSON *passages_json) {
   fflush(stdout);
 
   // Saving the Passage
-  passage_save(passage, message_buff, context_buff, passages_json);
+  passage_save(passage_id, message_buff, context_buff, passages_json);
+  return true;
 }
 
-void passage_get_save(CURL *curl, CURLcode *result_code,
+bool passage_get_save(PassageId out, CURL *curl, CURLcode *result_code,
                       BibleVersion *bible_version, cJSON *bibles_arr,
                       cJSON **books_arr, cJSON *passages_json) {
   PassageInfo passage = {0};
-  passage_info_get_from_input(&passage, curl, result_code, bible_version,
-                              bibles_arr, books_arr);
-  passage_save_input(passage, passages_json);
+  bool res = false;
+  if (passage_info_get_from_input(&passage, curl, result_code, bible_version,
+                                  bibles_arr, books_arr)) {
+    passage_get_id(passage, out);
+    res = passage_save_input(out, passages_json);
+  }
+  return res;
 }
 
 // Passage Interactions

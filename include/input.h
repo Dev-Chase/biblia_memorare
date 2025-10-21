@@ -2,6 +2,7 @@
 #define INPUT_H
 
 #include "app.h"
+#include "passage.h"
 #include <cjson/cJSON.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -13,19 +14,22 @@ extern "C" {
 
 typedef struct InputOption InputOption;
 
+// NOTE: Returns whether self->data should be conserved
 typedef bool (*OptionFn)(InputOption *self, AppEnv env);
 typedef void (*OptionPrintDescFn)(void);
 typedef bool (*OptionInputCheckFn)(char input_buff[static INPUT_BUFF_LEN]);
 
 typedef enum InputOptionDataType {
-  RetrievedPassage,
-  SavedPassage,
+  NoData,
+  RetrievedPassageId,
+  SavedPassageId,
+  SavedPassageEntry,
   BooksList,
 } InputOptionDataType;
 
 typedef union InputOptionDataUnion {
-  cJSON *retrieved_passage;
-  cJSON *saved_passage;
+  PassageId passage_id;
+  cJSON *saved_passage_entry;
   cJSON *books_list;
 } InputOptionDataUnion;
 
@@ -41,6 +45,7 @@ typedef struct InputOption {
   OptionInputCheckFn input_check;
   size_t n_sub_options;
   const InputOption **sub_options; // Array of pointers
+  // NOTE: data must be reset if not used in an option
   InputOptionData data;
 } InputOption;
 

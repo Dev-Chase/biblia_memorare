@@ -36,6 +36,7 @@ typedef struct PassageInfo {
 // Passage Retrieval
 void passage_get_id(PassageInfo passage, PassageId passage_id);
 void passage_get_info_from_id(PassageId passage_id, PassageInfo *passage_info);
+// NOTE: returns whether input was valid
 bool passage_info_get_from_input(PassageInfo *passage, CURL *curl,
                                  CURLcode *result_code, BibleVersion *version,
                                  cJSON *bibles_arr, cJSON **books_arr);
@@ -46,8 +47,10 @@ cJSON *passage_get_data(PassageInfo passage, CURL *curl, CURLcode *result_code,
 
 // Saving Passages
 cJSON *passages_get_json(void);
-void passage_save_input(PassageInfo passage, cJSON *passages_json);
-void passage_get_save(CURL *curl, CURLcode *result_code,
+// NOTE: returns whether successfully saved
+bool passage_save_input(PassageId passage_id, cJSON *passages_json);
+// NOTE: returns whether successfully saved
+bool passage_get_save(PassageId out, CURL *curl, CURLcode *result_code,
                       BibleVersion *bible_version, cJSON *bibles_arr,
                       cJSON **books_arr, cJSON *passages_json);
 // Passage Interactions
