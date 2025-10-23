@@ -24,7 +24,7 @@ void passage_get_id(PassageInfo passage, PassageId passage_id) {
 
 // NOTE: passage_id must be valid
 void passage_get_info_from_id(PassageId passage_id, PassageInfo *passage_info) {
-  sscanf(passage_id, "%[^.].%d.%d-%*s.%d.%d", passage_info->book_id,
+  sscanf(passage_id, "%[^.].%d.%d-%*[^.].%d.%d", passage_info->book_id,
          &passage_info->beg_chap, &passage_info->beg_verse,
          &passage_info->end_chap, &passage_info->end_verse);
 }
@@ -331,7 +331,8 @@ bool passage_save_input(PassageId passage_id, cJSON *passages_json) {
   printf("What message would you like to save for this passage?: ");
   scanf("\n");
   fgets(message_buff, PASSAGE_MESSAGE_BUFF_SIZE, stdin);
-  // TODO: figure out what happens when an exceedingly large input is given and there is no \n character
+  // TODO: figure out what happens when an exceedingly large input is given and
+  // there is no \n character
   message_buff[strcspn(message_buff, "\n")] = '\0'; // Remove '\n'
   fflush(stdout);
 
@@ -437,8 +438,6 @@ cJSON *passages_get_by_id(cJSON *passages_json, PassageId req_id) {
     }
   }
 
-  printf("Passage with id: %s is not already saved in " PASSAGES_FILE "\n",
-         req_id);
   return NULL;
 }
 

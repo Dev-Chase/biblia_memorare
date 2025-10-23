@@ -22,14 +22,13 @@ typedef bool (*OptionInputCheckFn)(char input_buff[static INPUT_BUFF_LEN]);
 typedef enum InputOptionDataType {
   NoData,
   RetrievedPassageId,
-  SavedPassageId,
-  SavedPassageEntry,
+  SavedPassage,
   BooksList,
 } InputOptionDataType;
 
 typedef union InputOptionDataUnion {
   PassageId passage_id;
-  cJSON *saved_passage_entry;
+  cJSON *saved_passage_obj;
   cJSON *books_list;
 } InputOptionDataUnion;
 

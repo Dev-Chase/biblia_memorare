@@ -1,4 +1,6 @@
 #include "input.h"
+#include "constants.h"
+#include "global.h"
 #include "passage.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +9,7 @@
 const InputOption GLOBAL_INPUT_OPTION;
 static const InputOption GET_PASSAGE_OPTION;
 static const InputOption SAVE_PASSAGE_OPTION;
+static const InputOption GET_SAVED_PASSAGE_OPTION;
 
 // Input Option Specifics
 // Getting a Passage from the Bible
@@ -14,12 +17,11 @@ void get_passage_option_print_desc(void) {
   puts("get/passage get - Get a Passage from the Bible");
 }
 
-// TODO: figure out why a passage with a range of verses is not being retrieved, but only the first verse when going here after saving
 bool get_passage_option_fn(InputOption *current_opt, AppEnv env) {
   PassageInfo passage = {0};
   cJSON *passage_data = NULL;
 
-  if (current_opt->data.type == SavedPassageId) {
+  if (current_opt->data.type == SavedPassage) {
     passage_get_info_from_id(current_opt->data.value.passage_id, &passage);
   } else {
     if (!passage_info_get_from_input(&passage, env.curl, env.curl_code,
@@ -56,10 +58,11 @@ static const InputOption GET_PASSAGE_OPTION = {
     .exec = get_passage_option_fn,
     .print_desc = get_passage_option_print_desc,
     .input_check = get_passage_option_input_check,
-    .n_sub_options = 3,
+    .n_sub_options = 4,
     .sub_options =
         (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
-                                &SAVE_PASSAGE_OPTION},
+                                &SAVE_PASSAGE_OPTION,
+                                &GET_SAVED_PASSAGE_OPTION},
     .data = {0}};
 
 // Saving a Passage ID
@@ -71,18 +74,31 @@ bool save_passage_option_fn(InputOption *current_opt, AppEnv env) {
   if (current_opt->data.type == RetrievedPassageId) {
     if (passage_save_input(current_opt->data.value.passage_id,
                            env.saved_passages_json)) {
-      current_opt->data.type = SavedPassageId;
+      current_opt->data.type = SavedPassage;
+      current_opt->data.value.saved_passage_obj = passages_get_by_id(
+          env.saved_passages_json, current_opt->data.value.passage_id);
+      error_if(current_opt->data.value.saved_passage_obj == NULL,
+               "error saving passage: could not be retrieved after having "
+               "been saved");
     }
     return false;
   }
 
-  if (passage_get_save(current_opt->data.value.passage_id, env.curl,
-                       env.curl_code, env.bible_version, env.bibles_arr,
-                       env.books_arr, env.saved_passages_json)) {
-    current_opt->data.type = SavedPassageId;
-  } else {
-    current_opt->data.type = NoData;
-  }
+  current_opt->data.type = SavedPassage;
+  // NOTE: data type set to SavedPassageId regardless of passage_get_save's
+  // success or failure. this is done with the assumption that failure is due to
+  // a passage already being saved
+  passage_get_save(current_opt->data.value.passage_id, env.curl, env.curl_code,
+                   env.bible_version, env.bibles_arr, env.books_arr,
+                   env.saved_passages_json);
+  // NOTE: pointer lasts for lifetime of env.saved_passages_json
+  current_opt->data.value.saved_passage_obj = passages_get_by_id(
+      env.saved_passages_json, current_opt->data.value.passage_id);
+  // NOTE: error here because even if the passage is not saved properly, it
+  // should only be because it was already saved
+  error_if(
+      current_opt->data.value.saved_passage_obj == NULL,
+      "error saving passage: could not be retrieved after having been saved");
 
   return true;
 }
@@ -100,6 +116,69 @@ static const InputOption SAVE_PASSAGE_OPTION = {
     .sub_options =
         (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION},
     .data = {0}};
+
+// Getting a Saved Passage
+void get_saved_passage_option_print_desc(void) {
+  puts("saved/get saved - Get a saved passage");
+}
+
+// TODO: figure out why reference is being printed after retrievining it
+bool get_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
+  // TODO: make it so passage_id is not asked for if current_opt->data.type ==
+  // RetrievedPassageId
+  PassageInfo passage;
+  PassageId passage_id;
+  if (current_opt->data.type == RetrievedPassageId) {
+    // NOTE: no need for bounds checking since both are of type PassageId
+    // (char[] of the same length)
+    strcpy(passage_id, current_opt->data.value.passage_id);
+    passage_get_info_from_id(passage_id, &passage);
+  } else {
+    if (!passage_info_get_from_input(&passage, env.curl, env.curl_code,
+                                     env.bible_version, env.bibles_arr,
+                                     env.books_arr)) {
+      return false;
+    }
+
+    passage_get_id(passage, passage_id);
+  }
+
+  cJSON *passage_obj = passages_get_by_id(env.saved_passages_json, passage_id);
+  if (passage_obj == NULL) {
+    passage_print_reference(passage, *env.books_arr, false);
+    printf(" is not saved in " PASSAGES_FILE "\n");
+    return false;
+  }
+
+  printf("Found ");
+  passage_print_reference(passage, *env.books_arr, false);
+  printf(" in " PASSAGES_FILE "!\n");
+  current_opt->data.type = SavedPassage;
+  current_opt->data.value.saved_passage_obj = passage_obj;
+  // NOTE: no need for bounds checking since both are of type PassageId (char[]
+  // of the same length)
+  strcpy(current_opt->data.value.passage_id, passage_id);
+
+  return true;
+}
+
+bool get_saved_passage_option_input_check(
+    char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "saved") == 0) ||
+         (strcmp(input_buff, "get saved") == 0);
+}
+
+static const InputOption GET_SAVED_PASSAGE_OPTION = {
+    .exec = get_saved_passage_option_fn,
+    .print_desc = get_saved_passage_option_print_desc,
+    .input_check = get_saved_passage_option_input_check,
+    .n_sub_options = 2,
+    .sub_options =
+        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION},
+    .data = {0}};
+
+// TODO: add option(s) for getting a saved passages informations
+// details/interacting with a saved passage
 
 // Global Option
 void global_option_print_desc(void) {
@@ -121,9 +200,10 @@ const InputOption GLOBAL_INPUT_OPTION = {
     .exec = global_option_fn,
     .print_desc = global_option_print_desc,
     .input_check = global_option_input_check,
-    .n_sub_options = 2,
+    .n_sub_options = 3,
     .sub_options =
-        (const InputOption *[]){&GET_PASSAGE_OPTION, &SAVE_PASSAGE_OPTION},
+        (const InputOption *[]){&GET_PASSAGE_OPTION, &SAVE_PASSAGE_OPTION,
+                                &GET_SAVED_PASSAGE_OPTION},
     .data = {0}};
 
 void input_show_options_desc(void) {
