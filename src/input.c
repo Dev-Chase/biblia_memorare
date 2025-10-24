@@ -24,9 +24,9 @@ bool get_passage_option_fn(InputOption *current_opt, AppEnv env) {
   if (current_opt->data.type == SavedPassage) {
     passage_get_info_from_id(current_opt->data.value.passage_id, &passage);
   } else {
-    if (!passage_info_get_from_input(&passage, env.curl, env.curl_code,
-                                     env.bible_version, env.bibles_arr,
-                                     env.books_arr)) {
+    if (!passage_info_get_from_input(
+            "What passage are you searching for?", &passage, env.curl,
+            env.curl_code, env.bible_version, env.bibles_arr, env.books_arr)) {
       return false;
     }
   }
@@ -122,10 +122,7 @@ void get_saved_passage_option_print_desc(void) {
   puts("saved/get saved - Get a saved passage");
 }
 
-// TODO: figure out why reference is being printed after retrievining it
 bool get_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
-  // TODO: make it so passage_id is not asked for if current_opt->data.type ==
-  // RetrievedPassageId
   PassageInfo passage;
   PassageId passage_id;
   if (current_opt->data.type == RetrievedPassageId) {
@@ -134,9 +131,9 @@ bool get_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
     strcpy(passage_id, current_opt->data.value.passage_id);
     passage_get_info_from_id(passage_id, &passage);
   } else {
-    if (!passage_info_get_from_input(&passage, env.curl, env.curl_code,
-                                     env.bible_version, env.bibles_arr,
-                                     env.books_arr)) {
+    if (!passage_info_get_from_input(
+            "What saved passage are you looking for?", &passage, env.curl,
+            env.curl_code, env.bible_version, env.bibles_arr, env.books_arr)) {
       return false;
     }
 

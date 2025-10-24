@@ -82,25 +82,10 @@ int main(void) {
     input_process(&current_option, input_buff, app_env);
   }
 
+  // TODO: delete the following
   // Getting a Passage Based on Input
   PassageInfo passage = {0};
   cJSON *passage_data = NULL;
-  if (passage_info_get_from_input(&passage, curl, &curl_res, &bible_version,
-                                  bibles_arr, &books_arr)) {
-    passage_data = passage_get_data(passage, curl, &curl_res, bible_version);
-  }
-
-  if (passage_data != NULL) {
-    passage_print_text(passage_data, bible_version.abbr);
-
-    PassageId passage_id;
-    passage_get_id(passage, passage_id);
-    passage_save_input(passage_id, passages_json);
-
-    puts("---------------------------------------------------");
-    passage_print_reference(passage, books_arr, true);
-    cJSON_Delete(passage_data);
-  }
 
   printf("Would you like to get a random passage?: ");
   char ch;
@@ -123,7 +108,7 @@ int main(void) {
     if (passage_data != NULL) {
       passage_print_text(passage_data, bible_version.abbr);
       puts("---------------------------------------------------");
-      passage_print_reference(passage, books_arr, true);
+      // passage_print_reference(passage, books_arr, true);
       cJSON_Delete(passage_data);
     }
   }

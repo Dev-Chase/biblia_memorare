@@ -52,9 +52,10 @@ void esv_passage_url(PassageInfo passage, char url[URL_BUFF_LEN]) {
 }
 
 #define PASSAGE_INPUT_BUFF_LEN 64 // NOTE: >= BIBLE_MAX_BOOK_NAME_LEN + 10
-bool passage_info_get_from_input(PassageInfo *passage, CURL *curl,
-                                 CURLcode *result_code, BibleVersion *version,
-                                 cJSON *bibles_arr, cJSON **books_arr) {
+bool passage_info_get_from_input(char *message, PassageInfo *passage,
+                                 CURL *curl, CURLcode *result_code,
+                                 BibleVersion *version, cJSON *bibles_arr,
+                                 cJSON **books_arr) {
   *passage = (PassageInfo){0};
 
   char passage_input[PASSAGE_INPUT_BUFF_LEN] = "";
@@ -62,7 +63,7 @@ bool passage_info_get_from_input(PassageInfo *passage, CURL *curl,
   char book_name[MAX_BOOK_NAME_LEN] = "";
 
   // Getting Input
-  printf("Please Input a Passage: ");
+  printf("%s: ", message);
   fgets(passage_input, sizeof(passage_input), stdin);
   strncpy(passage_input_tokenized, passage_input, PASSAGE_INPUT_BUFF_LEN - 1);
   fflush(stdout);
@@ -121,9 +122,9 @@ bool passage_info_get_from_input(PassageInfo *passage, CURL *curl,
   char language_id[10];
   int n_captured = sscanf(passage_input, "%*[^(](%23[^)]) - %9s",
                           bible_version_abbr, language_id);
-  if (n_captured == 2) {
-    printf("Language_id: %s\n", language_id);
-  }
+  // if (n_captured == 2) {
+  //   printf("Language_id: %s\n", language_id);
+  // }
   if (n_captured > 0) {
     BibleVersion version_supplied = bible_version_from_abbreviation(
         bibles_arr, (n_captured == 2) ? language_id : version->language_id,
@@ -149,9 +150,9 @@ bool passage_info_get_from_input(PassageInfo *passage, CURL *curl,
   // Copying over string so that it no longer belongs to books_arr
   strncpy(passage->book_id, book_id, sizeof(char) * (MAX_BOOK_ID_LEN - 1));
 
-  printf("%s %d:%d-%d:%d (%s)\n", book_name, passage->beg_chap,
-         passage->beg_verse, passage->end_chap, passage->end_verse,
-         version->abbr);
+  // printf("%s %d:%d-%d:%d (%s)\n", book_name, passage->beg_chap,
+  //        passage->beg_verse, passage->end_chap, passage->end_verse,
+  //        version->abbr);
   return true;
 }
 
@@ -352,8 +353,8 @@ bool passage_get_save(PassageId out, CURL *curl, CURLcode *result_code,
                       cJSON **books_arr, cJSON *passages_json) {
   PassageInfo passage = {0};
   bool res = false;
-  if (passage_info_get_from_input(&passage, curl, result_code, bible_version,
-                                  bibles_arr, books_arr)) {
+  if (passage_info_get_from_input("Which passage do you want to save?: ", &passage, curl, result_code,
+          bible_version, bibles_arr, books_arr)) {
     passage_get_id(passage, out);
     res = passage_save_input(out, passages_json);
   }

@@ -37,9 +37,10 @@ typedef struct PassageInfo {
 void passage_get_id(PassageInfo passage, PassageId passage_id);
 void passage_get_info_from_id(PassageId passage_id, PassageInfo *passage_info);
 // NOTE: returns whether input was valid
-bool passage_info_get_from_input(PassageInfo *passage, CURL *curl,
-                                 CURLcode *result_code, BibleVersion *version,
-                                 cJSON *bibles_arr, cJSON **books_arr);
+bool passage_info_get_from_input(char *message, PassageInfo *passage,
+                                 CURL *curl, CURLcode *result_code,
+                                 BibleVersion *version, cJSON *bibles_arr,
+                                 cJSON **books_arr);
 cJSON *esv_passage_get_data(PassageInfo passage, CURL *curl,
                             CURLcode *result_code, const char *bible_id);
 cJSON *passage_get_data(PassageInfo passage, CURL *curl, CURLcode *result_code,
