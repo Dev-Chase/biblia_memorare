@@ -74,34 +74,35 @@ void save_passage_option_print_desc(void) {
 }
 
 bool save_passage_option_fn(InputOption *current_opt, AppEnv env) {
-  if (current_opt->data.type == RetrievedPassageId) {
-    if (passage_save_input(current_opt->data.value.passage_id,
-                           env.saved_passages_json)) {
-      current_opt->data.type = SavedPassage;
-      current_opt->data.value.saved_passage_obj = passages_get_by_id(
-          env.saved_passages_json, current_opt->data.value.passage_id);
-      error_if(current_opt->data.value.saved_passage_obj == NULL,
-               "error saving passage: could not be retrieved after having "
-               "been saved");
+  // Set current_opt->data.value.passage_id if not just gotten through
+  // retrieving a passage
+  if (current_opt->data.type != RetrievedPassageId) {
+    puts("Getting a Passage Id to save since none was provided.");
+    PassageInfo passage;
+    if (!passage_info_get_from_input(
+            "Which passage do you want to save?", &passage, env.curl,
+            env.curl_code, env.bible_version, env.bibles_arr, env.books_arr)) {
+      return false;
     }
-    return false;
+
+    passage_get_id(passage, current_opt->data.value.passage_id);
   }
 
+  passage_save_input(current_opt->data.value.passage_id,
+                     env.saved_passages_json);
+  // NOTE: no error handling is done because the only error that should be
+  // present here is a passage already being saved, in which case a
+  // SavedPassage can still be set (might have to change if passage_save_input
+  // can error in any other meaningful way)
   current_opt->data.type = SavedPassage;
-  // NOTE: data type set to SavedPassageId regardless of passage_get_save's
-  // success or failure. this is done with the assumption that failure is due to
-  // a passage already being saved
-  passage_get_save(current_opt->data.value.passage_id, env.curl, env.curl_code,
-                   env.bible_version, env.bibles_arr, env.books_arr,
-                   env.saved_passages_json);
   // NOTE: pointer lasts for lifetime of env.saved_passages_json
   current_opt->data.value.saved_passage_obj = passages_get_by_id(
       env.saved_passages_json, current_opt->data.value.passage_id);
-  // NOTE: error here because even if the passage is not saved properly, it
-  // should only be because it was already saved
-  error_if(
-      current_opt->data.value.saved_passage_obj == NULL,
-      "error saving passage: could not be retrieved after having been saved");
+  // Only NULL if it was not saved or is not already saved, which should never
+  // happen
+  error_if(current_opt->data.value.saved_passage_obj == NULL,
+           "error saving passage: could not be retrieved after having "
+           "been saved");
 
   return true;
 }
@@ -205,7 +206,9 @@ bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
     return false;
   }
   puts("WELL, I GOT THIS FAR!");
-  // TODO: find segfault in the following code
+  // TODO: find segfault after this
+  printf("Saved passage object pointer: %p\n",
+         current_opt->data.value.saved_passage_obj);
 
   cJSON *field = passage_obj_get_field(
       current_opt->data.value.saved_passage_obj, req_field);

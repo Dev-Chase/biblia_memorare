@@ -348,19 +348,21 @@ bool passage_save_input(PassageId passage_id, cJSON *passages_json) {
   return true;
 }
 
-bool passage_get_save(PassageId out, CURL *curl, CURLcode *result_code,
-                      BibleVersion *bible_version, cJSON *bibles_arr,
-                      cJSON **books_arr, cJSON *passages_json) {
-  PassageInfo passage = {0};
-  bool res = false;
-  if (passage_info_get_from_input(
-          "Which passage do you want to save?: ", &passage, curl, result_code,
-          bible_version, bibles_arr, books_arr)) {
-    passage_get_id(passage, out);
-    res = passage_save_input(out, passages_json);
-  }
-  return res;
-}
+// TODO: erase everything related to this
+// bool passage_get_save(PassageId out, CURL *curl, CURLcode *result_code,
+//                       BibleVersion *bible_version, cJSON *bibles_arr,
+//                       cJSON **books_arr, cJSON *passages_json) {
+//   PassageInfo passage = {0};
+//   bool res = false;
+//   if (passage_info_get_from_input(
+//           "Which passage do you want to save?", &passage, curl, result_code,
+//           bible_version, bibles_arr, books_arr)) {
+//     passage_get_id(passage, out);
+//     res = passage_save_input(out, passages_json);
+//   }
+//
+//   return res;
+// }
 
 // Passage Interactions
 void passage_print_reference(PassageInfo passage, cJSON *books_arr,
@@ -428,6 +430,8 @@ cJSON *passages_array_get(cJSON *passages_json) {
   return passages_arr;
 }
 
+// TODO: make sure that the returned object is of the same kind as gotten from the random entry function:
+// cJSON_GetArrayItem(passages_arr, ind);
 // NOTE: pointer returned belongs to passages_json and lasts for its lifetime
 cJSON *passages_get_by_id(cJSON *passages_json, PassageId req_id) {
   cJSON *passages_arr = passages_array_get(passages_json);
