@@ -24,6 +24,7 @@ void passage_get_id(PassageInfo passage, PassageId passage_id) {
 
 // NOTE: passage_id must be valid
 void passage_get_info_from_id(PassageId passage_id, PassageInfo *passage_info) {
+  *passage_info = (PassageInfo){0};
   sscanf(passage_id, "%[^.].%d.%d-%*[^.].%d.%d", passage_info->book_id,
          &passage_info->beg_chap, &passage_info->beg_verse,
          &passage_info->end_chap, &passage_info->end_verse);
@@ -430,9 +431,9 @@ cJSON *passages_array_get(cJSON *passages_json) {
   return passages_arr;
 }
 
-// TODO: make sure that the returned object is of the same kind as gotten from the random entry function:
-// cJSON_GetArrayItem(passages_arr, ind);
-// NOTE: pointer returned belongs to passages_json and lasts for its lifetime
+// TODO: make sure that the returned object is of the same kind as gotten from
+// the random entry function: cJSON_GetArrayItem(passages_arr, ind); NOTE:
+// pointer returned belongs to passages_json and lasts for its lifetime
 cJSON *passages_get_by_id(cJSON *passages_json, PassageId req_id) {
   cJSON *passages_arr = passages_array_get(passages_json);
 

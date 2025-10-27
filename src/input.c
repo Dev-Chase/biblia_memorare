@@ -205,15 +205,10 @@ bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
             input_buff);
     return false;
   }
-  puts("WELL, I GOT THIS FAR!");
-  // TODO: find segfault after this
-  printf("Saved passage object pointer: %p\n",
-         current_opt->data.value.saved_passage_obj);
 
   cJSON *field = passage_obj_get_field(
       current_opt->data.value.saved_passage_obj, req_field);
-  printf("field retrieved pointer: %p\n", field);
-  printf("Here is the passage's saved %s\n", input_buff);
+  printf("Here is the passage's saved %s:\n", input_buff);
   printf("%s\n", field->valuestring);
   if (req_field == PassageObjId) {
     if (strcmp(field->valuestring, current_opt->data.value.passage_id) != 0) {
@@ -226,7 +221,8 @@ bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
     printf("It's reference is: ");
     PassageInfo passage_info;
     passage_get_info_from_id(field->valuestring, &passage_info);
-    passage_print_reference(passage_info, *env.books_arr, true);
+    passage_print_reference(passage_info, *env.books_arr, false);
+    printf("\n");
   }
 
   return false;
