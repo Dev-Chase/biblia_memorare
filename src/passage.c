@@ -353,7 +353,8 @@ bool passage_get_save(PassageId out, CURL *curl, CURLcode *result_code,
                       cJSON **books_arr, cJSON *passages_json) {
   PassageInfo passage = {0};
   bool res = false;
-  if (passage_info_get_from_input("Which passage do you want to save?: ", &passage, curl, result_code,
+  if (passage_info_get_from_input(
+          "Which passage do you want to save?: ", &passage, curl, result_code,
           bible_version, bibles_arr, books_arr)) {
     passage_get_id(passage, out);
     res = passage_save_input(out, passages_json);
@@ -479,7 +480,8 @@ cJSON *passage_obj_create(PassageId id, char *message, char *context) {
   return passage_obj;
 }
 
-// NOTE: pointer returned belongs to passage_obj and lasts for its lifetime
+// NOTE: pointer returned belongs to passage_obj and lasts for its lifetime.
+// Returned pointer is a none-null string
 cJSON *passage_obj_get_field(cJSON *passage_obj, PassageObjField attr) {
   cJSON *res = cJSON_GetObjectItemCaseSensitive(passage_obj,
                                                 PASSAGE_OBJ_FIELD_KEYS[attr]);

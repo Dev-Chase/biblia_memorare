@@ -10,6 +10,7 @@ const InputOption GLOBAL_INPUT_OPTION;
 static const InputOption GET_PASSAGE_OPTION;
 static const InputOption SAVE_PASSAGE_OPTION;
 static const InputOption GET_SAVED_PASSAGE_OPTION;
+static const InputOption SAVED_PASSAGE_INFO_OPTION;
 
 // Input Option Specifics
 // Getting a Passage from the Bible
@@ -20,9 +21,11 @@ void get_passage_option_print_desc(void) {
 bool get_passage_option_fn(InputOption *current_opt, AppEnv env) {
   PassageInfo passage = {0};
   cJSON *passage_data = NULL;
+  bool replace_current_opt = true;
 
   if (current_opt->data.type == SavedPassage) {
     passage_get_info_from_id(current_opt->data.value.passage_id, &passage);
+    replace_current_opt = false;
   } else {
     if (!passage_info_get_from_input(
             "What passage are you searching for?", &passage, env.curl,
@@ -42,7 +45,7 @@ bool get_passage_option_fn(InputOption *current_opt, AppEnv env) {
     passage_get_id(passage, current_opt->data.value.passage_id);
 
     cJSON_Delete(passage_data);
-    return true;
+    return replace_current_opt;
   }
 
   current_opt->data.type = NoData;
@@ -169,13 +172,77 @@ static const InputOption GET_SAVED_PASSAGE_OPTION = {
     .exec = get_saved_passage_option_fn,
     .print_desc = get_saved_passage_option_print_desc,
     .input_check = get_saved_passage_option_input_check,
-    .n_sub_options = 2,
+    .n_sub_options = 3,
     .sub_options =
-        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION},
+        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+                                &SAVED_PASSAGE_INFO_OPTION},
     .data = {0}};
 
-// TODO: add option(s) for getting a saved passages informations
-// details/interacting with a saved passage
+// Getting a Saved Passage's Information
+void saved_passage_info_option_print_desc(void) {
+  puts("get info/get field - Get the passage's saved information");
+}
+
+bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
+  error_if(current_opt->data.type != SavedPassage,
+           "Attempted to Get a Saved Passage's information when there is no "
+           "Saved Passage given");
+
+  char input_buff[INPUT_BUFF_LEN] = "\0";
+  input_get("What field would you like to get (id, message, context)?: ",
+            input_buff);
+
+  PassageObjField req_field;
+  if (strcmp(input_buff, "id") == 0) {
+    req_field = PassageObjId;
+  } else if (strcmp(input_buff, "message") == 0) {
+    req_field = PassageObjMessage;
+  } else if (strcmp(input_buff, "context") == 0) {
+    req_field = PassageObjContext;
+  } else {
+    fprintf(stderr, "%s is not a valid field for a saved passage\n",
+            input_buff);
+    return false;
+  }
+  puts("WELL, I GOT THIS FAR!");
+  // TODO: find segfault in the following code
+
+  cJSON *field = passage_obj_get_field(
+      current_opt->data.value.saved_passage_obj, req_field);
+  printf("field retrieved pointer: %p\n", field);
+  printf("Here is the passage's saved %s\n", input_buff);
+  printf("%s\n", field->valuestring);
+  if (req_field == PassageObjId) {
+    if (strcmp(field->valuestring, current_opt->data.value.passage_id) != 0) {
+      printf("This is what the ID should be: %s\n",
+             current_opt->data.value.passage_id);
+      error_if(true, "That's weird! The Saved Passage's ID doesn't match the "
+                     "one stored in code!\n");
+    }
+
+    printf("It's reference is: ");
+    PassageInfo passage_info;
+    passage_get_info_from_id(field->valuestring, &passage_info);
+    passage_print_reference(passage_info, *env.books_arr, true);
+  }
+
+  return false;
+}
+
+bool saved_passage_info_option_input_check(
+    char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "get info") == 0) ||
+         (strcmp(input_buff, "get field") == 0);
+}
+
+static const InputOption SAVED_PASSAGE_INFO_OPTION = {
+    .exec = saved_passage_info_option_fn,
+    .print_desc = saved_passage_info_option_print_desc,
+    .input_check = saved_passage_info_option_input_check,
+    // NOTE: sub_options should not be accessible anyway here
+    .n_sub_options = 1,
+    .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
+    .data = {0}};
 
 // Global Option
 void global_option_print_desc(void) {

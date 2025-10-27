@@ -80,9 +80,11 @@ int main(void) {
 
     // Process Input
     input_process(&current_option, input_buff, app_env);
+
+    puts("-----------------------------------");
   }
 
-  // TODO: delete the following
+  // TODO: look through and then delete the following
   // Getting a Passage Based on Input
   PassageInfo passage = {0};
   cJSON *passage_data = NULL;
