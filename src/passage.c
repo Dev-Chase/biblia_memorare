@@ -320,6 +320,17 @@ void passage_save(PassageId passage_id, char *message, char *context,
   fclose(file);
 }
 
+void passage_input_field(char *message, size_t buff_size, char *input_buff) {
+  printf("%s: ", message);
+  fgets(input_buff, buff_size, stdin);
+  // Remove trailing '\n'
+  size_t input_buff_strlen = strnlen(input_buff, buff_size);
+  if (input_buff[input_buff_strlen - 1] == '\n') {
+    input_buff[input_buff_strlen - 1] = '\0';
+  }
+  fflush(stdout);
+}
+
 bool passage_save_input(PassageId passage_id, cJSON *passages_json) {
   if (passages_get_by_id(passages_json, passage_id) != NULL) {
     printf("Passage %s is already saved in " PASSAGES_FILE "\n", passage_id);
@@ -330,19 +341,10 @@ bool passage_save_input(PassageId passage_id, cJSON *passages_json) {
   char context_buff[PASSAGE_CONTEXT_BUFF_SIZE];
 
   // Getting Meaning
-  printf("What message would you like to save for this passage?: ");
-  scanf("\n");
-  fgets(message_buff, PASSAGE_MESSAGE_BUFF_SIZE, stdin);
-  // TODO: figure out what happens when an exceedingly large input is given and
-  // there is no \n character
-  message_buff[strcspn(message_buff, "\n")] = '\0'; // Remove '\n'
-  fflush(stdout);
+  passage_input_field("What message would you like to save for this passage?", PASSAGE_MESSAGE_BUFF_SIZE, message_buff);
 
   // Getting Context
-  printf("What is the context of the passage?: ");
-  fgets(context_buff, PASSAGE_CONTEXT_BUFF_SIZE, stdin);
-  context_buff[strcspn(context_buff, "\n")] = '\0'; // Remove '\n'
-  fflush(stdout);
+  passage_input_field("What is the context of the passage?", PASSAGE_CONTEXT_BUFF_SIZE, context_buff);
 
   // Saving the Passage
   passage_save(passage_id, message_buff, context_buff, passages_json);
@@ -431,9 +433,7 @@ cJSON *passages_array_get(cJSON *passages_json) {
   return passages_arr;
 }
 
-// TODO: make sure that the returned object is of the same kind as gotten from
-// the random entry function: cJSON_GetArrayItem(passages_arr, ind); NOTE:
-// pointer returned belongs to passages_json and lasts for its lifetime
+// NOTE: pointer returned belongs to passages_json and lasts for its lifetime
 cJSON *passages_get_by_id(cJSON *passages_json, PassageId req_id) {
   cJSON *passages_arr = passages_array_get(passages_json);
 

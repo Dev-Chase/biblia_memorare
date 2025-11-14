@@ -10,7 +10,9 @@ const InputOption GLOBAL_INPUT_OPTION;
 static const InputOption GET_PASSAGE_OPTION;
 static const InputOption SAVE_PASSAGE_OPTION;
 static const InputOption GET_SAVED_PASSAGE_OPTION;
+static const InputOption RANDOM_SAVED_PASSAGE_OPTION;
 static const InputOption SAVED_PASSAGE_INFO_OPTION;
+static const InputOption EDIT_SAVED_PASSAGE_OPTION;
 
 // Input Option Specifics
 // Getting a Passage from the Bible
@@ -40,9 +42,11 @@ bool get_passage_option_fn(InputOption *current_opt, AppEnv env) {
     // Printing Passage Text
     passage_print_text(passage_data, env.bible_version->abbr);
 
-    // Saving PassageID to current_opt
-    current_opt->data.type = RetrievedPassageId;
-    passage_get_id(passage, current_opt->data.value.passage_id);
+    // Saving PassageID to current_opt if going to Switch Option
+    if (replace_current_opt) {
+      current_opt->data.type = RetrievedPassageId;
+      passage_get_id(passage, current_opt->data.value.passage_id);
+    }
 
     cJSON_Delete(passage_data);
     return replace_current_opt;
@@ -116,9 +120,10 @@ static const InputOption SAVE_PASSAGE_OPTION = {
     .exec = save_passage_option_fn,
     .print_desc = save_passage_option_print_desc,
     .input_check = save_passage_option_input_check,
-    .n_sub_options = 2,
+    .n_sub_options = 3,
     .sub_options =
-        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION},
+        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+                                &EDIT_SAVED_PASSAGE_OPTION},
     .data = {0}};
 
 // Getting a Saved Passage
@@ -157,7 +162,7 @@ bool get_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
   current_opt->data.type = SavedPassage;
   current_opt->data.value.saved_passage_obj = passage_obj;
   // NOTE: no need for bounds checking since both are of type PassageId (char[]
-  // of the same length)
+  // of the same length) and should be null-terminated
   strcpy(current_opt->data.value.passage_id, passage_id);
 
   return true;
@@ -173,15 +178,61 @@ static const InputOption GET_SAVED_PASSAGE_OPTION = {
     .exec = get_saved_passage_option_fn,
     .print_desc = get_saved_passage_option_print_desc,
     .input_check = get_saved_passage_option_input_check,
-    .n_sub_options = 3,
+    .n_sub_options = 4,
     .sub_options =
         (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
-                                &SAVED_PASSAGE_INFO_OPTION},
+                                &SAVED_PASSAGE_INFO_OPTION,
+                                &EDIT_SAVED_PASSAGE_OPTION},
+    .data = {0}};
+
+// Getting a Random Saved Passage
+void random_saved_passage_option_print_desc(void) {
+  puts("random/get random - Get a random saved passage");
+}
+
+bool random_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
+  cJSON *passage_obj = passages_get_random_entry(env.saved_passages_json);
+  error_if(passage_obj == NULL, "Failed to get a random entry!");
+
+  printf("Successfully Retrieved a Random Passage\n");
+  current_opt->data.type = SavedPassage;
+  current_opt->data.value.saved_passage_obj = passage_obj;
+
+  // Getting Passage ID
+  cJSON *passage_obj_id = passage_obj_get_field(passage_obj, PassageObjId);
+
+  // NOTE: no need for bounds checking since both are of type PassageId (char[]
+  // of the same length) and should be null-terminated
+  strncpy(current_opt->data.value.passage_id, passage_obj_id->valuestring,
+          MAX_PASSAGE_ID_LEN - 1);
+  // NOTE: bounds checking is done to prevent overflows, but it does not
+  // guarantee that the saved passage id is valid
+
+  return true;
+}
+
+bool random_saved_passage_option_input_check(
+    char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "random") == 0) ||
+         (strcmp(input_buff, "get random") == 0);
+}
+
+static const InputOption RANDOM_SAVED_PASSAGE_OPTION = {
+    .exec = random_saved_passage_option_fn,
+    .print_desc = random_saved_passage_option_print_desc,
+    .input_check = random_saved_passage_option_input_check,
+    .n_sub_options = 4,
+    .sub_options =
+        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+                                &SAVED_PASSAGE_INFO_OPTION,
+                                &EDIT_SAVED_PASSAGE_OPTION},
     .data = {0}};
 
 // Getting a Saved Passage's Information
+// TODO: consider improving interface (e.g. show criteria instead of entering
+// first into the option and then inputting the requested field)
 void saved_passage_info_option_print_desc(void) {
-  puts("get info/get field - Get the passage's saved information");
+  puts("show/get info/get field - Get the passage's saved information");
 }
 
 bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
@@ -190,7 +241,7 @@ bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
            "Saved Passage given");
 
   char input_buff[INPUT_BUFF_LEN] = "\0";
-  input_get("What field would you like to get (id, message, context)?: ",
+  input_get("What field would you like to get (id, message, or context)?: ",
             input_buff);
 
   PassageObjField req_field;
@@ -230,7 +281,8 @@ bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
 
 bool saved_passage_info_option_input_check(
     char input_buff[static INPUT_BUFF_LEN]) {
-  return (strcmp(input_buff, "get info") == 0) ||
+  return (strcmp(input_buff, "show") == 0) ||
+         (strcmp(input_buff, "get info") == 0) ||
          (strcmp(input_buff, "get field") == 0);
 }
 
@@ -238,7 +290,84 @@ static const InputOption SAVED_PASSAGE_INFO_OPTION = {
     .exec = saved_passage_info_option_fn,
     .print_desc = saved_passage_info_option_print_desc,
     .input_check = saved_passage_info_option_input_check,
-    // NOTE: sub_options should not be accessible anyway here
+    // NOTE: sub_options should not be accessible here anyway
+    .n_sub_options = 1,
+    .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
+    .data = {0}};
+
+// TODO: implement
+// Editing a Saved Passage
+void edit_saved_passage_option_print_desc(void) {
+  puts("edit/edit info/edit field - Edit the passage's saved information");
+}
+
+bool edit_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
+  error_if(current_opt->data.type != SavedPassage,
+           "Attempted to Edit a Saved Passage's information when there is no "
+           "Saved Passage given");
+
+  char input_buff[INPUT_BUFF_LEN] = "\0";
+  input_get("What field would you like to edit (id, message, or context)?: ",
+            input_buff);
+
+  // TODO: finish (use dynamic memory to make new input buffers)
+  PassageObjField req_field;
+  if (strcmp(input_buff, "id") == 0) {
+    req_field = PassageObjId;
+  } else if (strcmp(input_buff, "message") == 0) {
+    req_field = PassageObjMessage;
+  } else if (strcmp(input_buff, "context") == 0) {
+    req_field = PassageObjContext;
+  } else {
+    fprintf(stderr, "%s is not a valid field for a saved passage\n",
+            input_buff);
+    return false;
+  }
+
+  printf("What would you like to change the passage's %s to?: ", input_buff);
+  // printf("What is the context of the passage?: ");
+  // fgets(context_buff, PASSAGE_CONTEXT_BUFF_SIZE, stdin);
+  // // Remove trailing '\n'
+  // size_t context_buff_strlen = strnlen(context_buff, PASSAGE_CONTEXT_BUFF_SIZE);
+  // if (context_buff[context_buff_strlen - 1] == '\n') {
+  //   context_buff[context_buff_strlen - 1] = '\0';
+  // }
+  // fflush(stdout);
+  //
+  // cJSON *field = passage_obj_get_field(
+  //     current_opt->data.value.saved_passage_obj, req_field);
+  // printf("Here is the passage's saved %s:\n", input_buff);
+  // printf("%s\n", field->valuestring);
+  // if (req_field == PassageObjId) {
+  //   if (strcmp(field->valuestring, current_opt->data.value.passage_id) != 0) {
+  //     printf("This is what the ID should be: %s\n",
+  //            current_opt->data.value.passage_id);
+  //     error_if(true, "That's weird! The Saved Passage's ID doesn't match the "
+  //                    "one stored in code!\n");
+  //   }
+  //
+  //   printf("It's reference is: ");
+  //   PassageInfo passage_info;
+  //   passage_get_info_from_id(field->valuestring, &passage_info);
+  //   passage_print_reference(passage_info, *env.books_arr, false);
+  //   printf("\n");
+  // }
+
+  return false;
+}
+
+bool edit_saved_passage_option_input_check(
+    char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "edit") == 0) ||
+         (strcmp(input_buff, "edit info") == 0) ||
+         (strcmp(input_buff, "edit field") == 0);
+}
+
+static const InputOption EDIT_SAVED_PASSAGE_OPTION = {
+    .exec = edit_saved_passage_option_fn,
+    .print_desc = edit_saved_passage_option_print_desc,
+    .input_check = edit_saved_passage_option_input_check,
+    // NOTE: sub_options should not be accessible here anyway
     .n_sub_options = 1,
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
     .data = {0}};
@@ -263,9 +392,10 @@ const InputOption GLOBAL_INPUT_OPTION = {
     .exec = global_option_fn,
     .print_desc = global_option_print_desc,
     .input_check = global_option_input_check,
-    .n_sub_options = 3,
+    .n_sub_options = 4,
     .sub_options =
         (const InputOption *[]){&GET_PASSAGE_OPTION, &SAVE_PASSAGE_OPTION,
+                                &RANDOM_SAVED_PASSAGE_OPTION,
                                 &GET_SAVED_PASSAGE_OPTION},
     .data = {0}};
 
@@ -283,7 +413,9 @@ void input_print_options_list(
   for (size_t i = 0; i < n_sub_options; i++) {
     input_options[i]->print_desc();
   }
+  printf("current - See Current Option\n");
   printf("exit - Exit Program\n");
+  // TODO: add clear option?
   puts("---------------------");
 }
 
@@ -312,6 +444,10 @@ bool input_info_req_check(char input_buff[static INPUT_BUFF_LEN]) {
          (strcmp(input_buff, "help") == 0) || (strcmp(input_buff, "list") == 0);
 }
 
+bool current_opt_req_check(char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "current") == 0);
+}
+
 bool exit_req_check(char input_buff[static INPUT_BUFF_LEN]) {
   return (strcmp(input_buff, "exit") == 0);
 }
@@ -322,6 +458,12 @@ void input_process(InputOption *current_option,
   if (input_info_req_check(input_buff)) {
     input_print_options_list(current_option->n_sub_options,
                              current_option->sub_options);
+    return;
+  }
+
+  if (current_opt_req_check(input_buff)) {
+    printf("Your Current Option is:\n");
+    current_option->print_desc();
     return;
   }
 

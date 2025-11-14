@@ -49,6 +49,7 @@ cJSON *passage_get_data(PassageInfo passage, CURL *curl, CURLcode *result_code,
 // Saving Passages
 cJSON *passages_get_json(void);
 // NOTE: returns whether successfully saved
+void passage_input_field(char *message, size_t buff_size, char *input_buff);
 bool passage_save_input(PassageId passage_id, cJSON *passages_json);
 // NOTE: returns whether successfully saved
 bool passage_get_save(PassageId out, CURL *curl, CURLcode *result_code,
