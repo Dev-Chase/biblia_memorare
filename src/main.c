@@ -70,16 +70,16 @@ int main(void) {
 
   InputOption current_option = GLOBAL_INPUT_OPTION;
   current_option.exec(&current_option, app_env);
-  char input_buff[INPUT_BUFF_LEN] = "\0";
+  current_option.data.input_buff[0] = '\0';
 
   input_print_options_list(current_option.n_sub_options,
                            current_option.sub_options);
   while (true) {
     // Get Input
-    input_get("Input Here: ", INPUT_BUFF_LEN, input_buff);
+    input_get("Input Here: ", INPUT_BUFF_LEN, current_option.data.input_buff);
 
     // Process Input
-    input_process(&current_option, input_buff, app_env);
+    input_process(&current_option, app_env);
 
     puts("-----------------------------------");
   }

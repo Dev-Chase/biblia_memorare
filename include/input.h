@@ -37,6 +37,7 @@ typedef union InputOptionDataUnion {
 typedef struct InputOptionData {
   InputOptionDataType type;
   InputOptionDataUnion value;
+  char input_buff[INPUT_BUFF_LEN];
 } InputOptionData;
 
 // exec_fn is run initially and then sub_options are available
@@ -62,8 +63,7 @@ void input_get(const char *message, size_t buff_len, char *input_buff);
 
 // Handling Input
 void input_switch_option(InputOption *current_opt, const InputOption *new_opt);
-void input_process(InputOption *current_option,
-                   char input_buff[static INPUT_BUFF_LEN], AppEnv env);
+void input_process(InputOption *current_option, AppEnv env);
 
 #ifdef _cplusplus
 }

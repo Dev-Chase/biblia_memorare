@@ -230,8 +230,6 @@ static const InputOption RANDOM_SAVED_PASSAGE_OPTION = {
     .data = {0}};
 
 // Getting a Saved Passage's Information
-// TODO: consider improving interface (e.g. show criteria instead of entering
-// first into the option and then inputting the requested field)
 void saved_passage_info_option_print_desc(void) {
   puts("show/get info/get field - Get the passage's saved information");
 }
@@ -244,8 +242,15 @@ bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
            "Attempted to Get Information from a NULL Saved Passage");
 
   char input_buff[INPUT_BUFF_LEN] = "\0";
-  input_get("What field would you like to get (id, message, or context)?: ",
-            INPUT_BUFF_LEN, input_buff);
+  if (strncmp(current_opt->data.input_buff, "show", strlen("show")) == 0 &&
+      current_opt->data.input_buff[strlen("show")] == ' ') {
+    strncpy(input_buff, &current_opt->data.input_buff[strlen("show") + 1],
+            INPUT_BUFF_LEN - 1);
+  } else {
+    input_buff[0] = '\0';
+    input_get("What field would you like to get (id, message, or context)?: ",
+              INPUT_BUFF_LEN, input_buff);
+  }
 
   PassageObjField req_field;
   if (strcmp(input_buff, "id") == 0) {
@@ -284,7 +289,7 @@ bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
 
 bool saved_passage_info_option_input_check(
     char input_buff[static INPUT_BUFF_LEN]) {
-  return (strcmp(input_buff, "show") == 0) ||
+  return (strncmp(input_buff, "show", strlen("show")) == 0) ||
          (strcmp(input_buff, "get info") == 0) ||
          (strcmp(input_buff, "get field") == 0);
 }
@@ -299,6 +304,7 @@ static const InputOption SAVED_PASSAGE_INFO_OPTION = {
     .data = {0}};
 
 // Editing a Saved Passage
+// TODO: copy interface change done with saved_passage_info_option
 void edit_saved_passage_option_print_desc(void) {
   puts("edit/edit info/edit field - Edit the passage's saved information");
 }
@@ -441,8 +447,8 @@ void input_print_options_list(
     input_options[i]->print_desc();
   }
   printf("current - See Current Option\n");
+  printf("clear - Clear console\n");
   printf("exit - Exit Program\n");
-  // TODO: add clear option?
   puts("---------------------");
 }
 
@@ -479,26 +485,35 @@ bool current_opt_req_check(char input_buff[static INPUT_BUFF_LEN]) {
   return (strcmp(input_buff, "current") == 0);
 }
 
+bool clear_req_check(char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "clear") == 0);
+}
+
 bool exit_req_check(char input_buff[static INPUT_BUFF_LEN]) {
   return (strcmp(input_buff, "exit") == 0);
 }
 
-void input_process(InputOption *current_option,
-                   char input_buff[static INPUT_BUFF_LEN], AppEnv env) {
+void input_process(InputOption *current_option, AppEnv env) {
   // Print Available Options if Requested
-  if (input_info_req_check(input_buff)) {
+  if (input_info_req_check(current_option->data.input_buff)) {
     input_print_options_list(current_option->n_sub_options,
                              current_option->sub_options);
     return;
   }
 
-  if (current_opt_req_check(input_buff)) {
+  if (current_opt_req_check(current_option->data.input_buff)) {
     printf("Your Current Option is:\n");
     current_option->print_desc();
     return;
   }
 
-  if (exit_req_check(input_buff)) {
+  if (clear_req_check(current_option->data.input_buff)) {
+    // Clear the Console
+    printf("\033[2J\033[H");
+    return;
+  }
+
+  if (exit_req_check(current_option->data.input_buff)) {
     puts("Exiting program");
     exit(EXIT_SUCCESS);
     return;
@@ -506,7 +521,8 @@ void input_process(InputOption *current_option,
 
   size_t i = 0;
   for (; i < current_option->n_sub_options; i++) {
-    if (current_option->sub_options[i]->input_check(input_buff)) {
+    if (current_option->sub_options[i]->input_check(
+            current_option->data.input_buff)) {
       break;
     }
   }
@@ -515,7 +531,7 @@ void input_process(InputOption *current_option,
     printf("%s is not a valid option, enter 'info' or 'help' or 'list' to see "
            "available "
            "options\n",
-           input_buff);
+           current_option->data.input_buff);
     return;
   }
 
