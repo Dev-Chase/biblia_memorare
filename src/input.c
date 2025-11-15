@@ -179,9 +179,10 @@ static const InputOption GET_SAVED_PASSAGE_OPTION = {
     .exec = get_saved_passage_option_fn,
     .print_desc = get_saved_passage_option_print_desc,
     .input_check = get_saved_passage_option_input_check,
-    .n_sub_options = 4,
+    .n_sub_options = 5,
     .sub_options =
         (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+                                &GET_SAVED_PASSAGE_OPTION,
                                 &SAVED_PASSAGE_INFO_OPTION,
                                 &EDIT_SAVED_PASSAGE_OPTION},
     .data = {0}};
@@ -222,9 +223,10 @@ static const InputOption RANDOM_SAVED_PASSAGE_OPTION = {
     .exec = random_saved_passage_option_fn,
     .print_desc = random_saved_passage_option_print_desc,
     .input_check = random_saved_passage_option_input_check,
-    .n_sub_options = 4,
+    .n_sub_options = 5,
     .sub_options =
         (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+                                &GET_SAVED_PASSAGE_OPTION,
                                 &SAVED_PASSAGE_INFO_OPTION,
                                 &EDIT_SAVED_PASSAGE_OPTION},
     .data = {0}};
@@ -242,13 +244,15 @@ bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
            "Attempted to Get Information from a NULL Saved Passage");
 
   char input_buff[INPUT_BUFF_LEN] = "\0";
-  if (strncmp(current_opt->data.input_buff, "show", strlen("show")) == 0 &&
-      current_opt->data.input_buff[strlen("show")] == ' ') {
-    strncpy(input_buff, &current_opt->data.input_buff[strlen("show") + 1],
+  const char *input_start = "show";
+  size_t input_start_len = strlen(input_start);
+  if (strncmp(current_opt->data.input_buff, input_start, input_start_len) ==
+          0 &&
+      current_opt->data.input_buff[input_start_len] == ' ') {
+    strncpy(input_buff, &current_opt->data.input_buff[input_start_len + 1],
             INPUT_BUFF_LEN - 1);
   } else {
-    input_buff[0] = '\0';
-    input_get("What field would you like to get (id, message, or context)?: ",
+    input_get("What field would you like to see (id, message, or context)?: ",
               INPUT_BUFF_LEN, input_buff);
   }
 
@@ -304,7 +308,6 @@ static const InputOption SAVED_PASSAGE_INFO_OPTION = {
     .data = {0}};
 
 // Editing a Saved Passage
-// TODO: copy interface change done with saved_passage_info_option
 void edit_saved_passage_option_print_desc(void) {
   puts("edit/edit info/edit field - Edit the passage's saved information");
 }
@@ -318,8 +321,17 @@ bool edit_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
            "Attempted to Edit a NULL Saved Passage");
 
   char input_buff[INPUT_BUFF_LEN] = "\0";
-  input_get("What field would you like to edit (id, message, or context): ",
-            INPUT_BUFF_LEN, input_buff);
+  const char *input_start = "edit";
+  size_t input_start_len = strlen(input_start);
+  if (strncmp(current_opt->data.input_buff, input_start, input_start_len) ==
+          0 &&
+      current_opt->data.input_buff[input_start_len] == ' ') {
+    strncpy(input_buff, &current_opt->data.input_buff[input_start_len + 1],
+            INPUT_BUFF_LEN - 1);
+  } else {
+    input_get("What field would you like to edit (id, message, or context): ",
+              INPUT_BUFF_LEN, input_buff);
+  }
 
   PassageObjField req_field;
   size_t field_input_buff_size = 0;
@@ -391,7 +403,7 @@ bool edit_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
 
 bool edit_saved_passage_option_input_check(
     char input_buff[static INPUT_BUFF_LEN]) {
-  return (strcmp(input_buff, "edit") == 0) ||
+  return (strncmp(input_buff, "edit", strlen("edit")) == 0) ||
          (strcmp(input_buff, "edit info") == 0) ||
          (strcmp(input_buff, "edit field") == 0);
 }
@@ -404,6 +416,14 @@ static const InputOption EDIT_SAVED_PASSAGE_OPTION = {
     .n_sub_options = 1,
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
     .data = {0}};
+
+// TODO: add quiz option
+//   - include getting a passage's content without getting its reference then
+//   guessing it and vice versa (verifying if the reference is right, but
+//   perhaps not the wording of the passage unless a library is found to compare
+//   text
+//   - include guessing the message & context
+// TODO: add deleting entry option
 
 // Global/Home Option
 void global_option_print_desc(void) {

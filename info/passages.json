@@ -31,5 +31,9 @@
 			"id":	"DEU.8.17-DEU.8.18",
 			"message":	"Beware so as not to believe that you are responsible for your blessings, for even the power that you used to obtain them has been given to you.",
 			"context":	"A warning not to forget God in good times"
+		}, {
+			"id":	"DEU.9.15",
+			"message":	"Testing Message",
+			"context":	"Edited Context"
 		}]
 }
