@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "curl_handle.h"
 #include "global.h"
+#include "input.h"
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,22 +53,17 @@ void esv_passage_url(PassageInfo passage, char url[URL_BUFF_LEN]) {
   // "&include-heading-horizontal-lines=true"
 }
 
-#define PASSAGE_INPUT_BUFF_LEN 64 // NOTE: >= BIBLE_MAX_BOOK_NAME_LEN + 10
-bool passage_info_get_from_input(char *message, PassageInfo *passage,
+// NOTE: passage_str cannot be larger than PASSAGE_INPUT_BUFF_SIZE
+bool passage_info_get_from_string(const char passage_str[PASSAGE_INPUT_BUFF_SIZE], PassageInfo *passage,
                                  CURL *curl, CURLcode *result_code,
                                  BibleVersion *version, cJSON *bibles_arr,
                                  cJSON **books_arr) {
   *passage = (PassageInfo){0};
-
-  char passage_input[PASSAGE_INPUT_BUFF_LEN] = "";
-  char passage_input_tokenized[PASSAGE_INPUT_BUFF_LEN] = "";
+  char passage_input[PASSAGE_INPUT_BUFF_SIZE] = "";
+  char passage_input_tokenized[PASSAGE_INPUT_BUFF_SIZE] = "";
+  strncpy(passage_input, passage_str, PASSAGE_INPUT_BUFF_SIZE - 1);
+  strncpy(passage_input_tokenized, passage_str, PASSAGE_INPUT_BUFF_SIZE - 1);
   char book_name[MAX_BOOK_NAME_LEN] = "";
-
-  // Getting Input
-  printf("%s: ", message);
-  fgets(passage_input, sizeof(passage_input), stdin);
-  strncpy(passage_input_tokenized, passage_input, PASSAGE_INPUT_BUFF_LEN - 1);
-  fflush(stdout);
 
   // Tokenizing Beginning of Inputted String to get Book Name
   char *token = strtok(passage_input_tokenized, " ");
@@ -100,7 +96,7 @@ bool passage_info_get_from_input(char *message, PassageInfo *passage,
   size_t numbers_start = (token - passage_input_tokenized);
   memmove(passage_input, (char *)(passage_input + numbers_start),
           strnlen((char *)(passage_input + numbers_start),
-                  PASSAGE_INPUT_BUFF_LEN - 1));
+                  PASSAGE_INPUT_BUFF_SIZE - 1));
 
   // Getting Passage Information
   sscanf(passage_input, "%d:%d-%d:%d", &passage->beg_chap, &passage->beg_verse,
@@ -155,6 +151,21 @@ bool passage_info_get_from_input(char *message, PassageInfo *passage,
   //        passage->beg_verse, passage->end_chap, passage->end_verse,
   //        version->abbr);
   return true;
+}
+
+// NOTE: does not append ": " to message
+bool passage_info_get_from_input(char *message, PassageInfo *passage,
+                                 CURL *curl, CURLcode *result_code,
+                                 BibleVersion *version, cJSON *bibles_arr,
+                                 cJSON **books_arr) {
+  // Getting Input
+  char passage_input[PASSAGE_INPUT_BUFF_SIZE] = "";
+  input_get(message, PASSAGE_INPUT_BUFF_SIZE, passage_input);
+
+  // Processing Input
+  bool res = passage_info_get_from_string(passage_input, passage, curl, result_code, version, bibles_arr, books_arr);
+
+  return res;
 }
 
 // NOTE: caller is responsible for cleaning up the json returned and responsible
@@ -288,7 +299,7 @@ cJSON *passages_get_json(void) {
   return root;
 }
 
-void passage_save(PassageId passage_id, char *message, char *context,
+void passage_save(PassageId passage_id, char message[PASSAGE_MESSAGE_BUFF_SIZE], char context[PASSAGE_CONTEXT_BUFF_SIZE],
                   cJSON *passages_json) {
   if (passages_get_by_id(passages_json, passage_id) != NULL) {
     printf("Passage %s is already saved in " PASSAGES_FILE "\n", passage_id);
@@ -320,17 +331,6 @@ void passage_save(PassageId passage_id, char *message, char *context,
   fclose(file);
 }
 
-void passage_input_field(char *message, size_t buff_size, char *input_buff) {
-  printf("%s: ", message);
-  fgets(input_buff, buff_size, stdin);
-  // Remove trailing '\n'
-  size_t input_buff_strlen = strnlen(input_buff, buff_size);
-  if (input_buff[input_buff_strlen - 1] == '\n') {
-    input_buff[input_buff_strlen - 1] = '\0';
-  }
-  fflush(stdout);
-}
-
 bool passage_save_input(PassageId passage_id, cJSON *passages_json) {
   if (passages_get_by_id(passages_json, passage_id) != NULL) {
     printf("Passage %s is already saved in " PASSAGES_FILE "\n", passage_id);
@@ -341,31 +341,15 @@ bool passage_save_input(PassageId passage_id, cJSON *passages_json) {
   char context_buff[PASSAGE_CONTEXT_BUFF_SIZE];
 
   // Getting Meaning
-  passage_input_field("What message would you like to save for this passage?", PASSAGE_MESSAGE_BUFF_SIZE, message_buff);
+  input_get("What message would you like to save for this passage?: ", PASSAGE_MESSAGE_BUFF_SIZE, message_buff);
 
   // Getting Context
-  passage_input_field("What is the context of the passage?", PASSAGE_CONTEXT_BUFF_SIZE, context_buff);
+  input_get("What is the context of the passage?: ", PASSAGE_CONTEXT_BUFF_SIZE, context_buff);
 
   // Saving the Passage
   passage_save(passage_id, message_buff, context_buff, passages_json);
   return true;
 }
-
-// TODO: erase everything related to this
-// bool passage_get_save(PassageId out, CURL *curl, CURLcode *result_code,
-//                       BibleVersion *bible_version, cJSON *bibles_arr,
-//                       cJSON **books_arr, cJSON *passages_json) {
-//   PassageInfo passage = {0};
-//   bool res = false;
-//   if (passage_info_get_from_input(
-//           "Which passage do you want to save?", &passage, curl, result_code,
-//           bible_version, bibles_arr, books_arr)) {
-//     passage_get_id(passage, out);
-//     res = passage_save_input(out, passages_json);
-//   }
-//
-//   return res;
-// }
 
 // Passage Interactions
 void passage_print_reference(PassageInfo passage, cJSON *books_arr,

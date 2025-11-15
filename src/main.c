@@ -76,43 +76,12 @@ int main(void) {
                            current_option.sub_options);
   while (true) {
     // Get Input
-    input_get("Input Here: ", input_buff);
+    input_get("Input Here: ", INPUT_BUFF_LEN, input_buff);
 
     // Process Input
     input_process(&current_option, input_buff, app_env);
 
     puts("-----------------------------------");
-  }
-
-  // TODO: look through and then delete the following
-  // Getting a Passage Based on Input
-  PassageInfo passage = {0};
-  cJSON *passage_data = NULL;
-
-  printf("Would you like to get a random passage?: ");
-  char ch;
-  scanf("%c\n", &ch);
-  if (ch == 'y' || ch == 'Y') {
-    cJSON *random_passage_entry = passages_get_random_entry(passages_json);
-    puts("---------------------------------");
-    puts("The random passage you got was:");
-    cJSON *random_passage_id =
-        passage_obj_get_field(random_passage_entry, PassageObjId);
-    printf("ID: %s\n", random_passage_id->valuestring);
-    printf("Message: %s\n",
-           passage_obj_get_field(random_passage_entry, PassageObjMessage)
-               ->valuestring);
-    printf("Context: %s\n",
-           passage_obj_get_field(random_passage_entry, PassageObjContext)
-               ->valuestring);
-    passage_get_info_from_id(random_passage_id->valuestring, &passage);
-    passage_data = passage_get_data(passage, curl, &curl_res, bible_version);
-    if (passage_data != NULL) {
-      passage_print_text(passage_data, bible_version.abbr);
-      puts("---------------------------------------------------");
-      // passage_print_reference(passage, books_arr, true);
-      cJSON_Delete(passage_data);
-    }
   }
 
   // Cleaning Up Curl

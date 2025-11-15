@@ -58,7 +58,7 @@ void input_print_options_list(
     const InputOption *input_options[static n_sub_options]);
 
 // Getting and Processing Input
-void input_get(const char *message, char input_buff[static INPUT_BUFF_LEN]);
+void input_get(const char *message, size_t buff_len, char *input_buff);
 
 // Handling Input
 void input_switch_option(InputOption *current_opt, const InputOption *new_opt);

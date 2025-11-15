@@ -30,7 +30,7 @@ bool get_passage_option_fn(InputOption *current_opt, AppEnv env) {
     replace_current_opt = false;
   } else {
     if (!passage_info_get_from_input(
-            "What passage are you searching for?", &passage, env.curl,
+            "What passage are you searching for?: ", &passage, env.curl,
             env.curl_code, env.bible_version, env.bibles_arr, env.books_arr)) {
       return false;
     }
@@ -84,7 +84,7 @@ bool save_passage_option_fn(InputOption *current_opt, AppEnv env) {
     puts("Getting a Passage Id to save since none was provided.");
     PassageInfo passage;
     if (!passage_info_get_from_input(
-            "Which passage do you want to save?", &passage, env.curl,
+            "Which passage do you want to save?: ", &passage, env.curl,
             env.curl_code, env.bible_version, env.bibles_arr, env.books_arr)) {
       return false;
     }
@@ -120,9 +120,10 @@ static const InputOption SAVE_PASSAGE_OPTION = {
     .exec = save_passage_option_fn,
     .print_desc = save_passage_option_print_desc,
     .input_check = save_passage_option_input_check,
-    .n_sub_options = 3,
+    .n_sub_options = 4,
     .sub_options =
         (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+                                &SAVED_PASSAGE_INFO_OPTION,
                                 &EDIT_SAVED_PASSAGE_OPTION},
     .data = {0}};
 
@@ -136,12 +137,12 @@ bool get_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
   PassageId passage_id;
   if (current_opt->data.type == RetrievedPassageId) {
     // NOTE: no need for bounds checking since both are of type PassageId
-    // (char[] of the same length)
+    // (char[] of the same length) and should both be null-terminated
     strcpy(passage_id, current_opt->data.value.passage_id);
     passage_get_info_from_id(passage_id, &passage);
   } else {
     if (!passage_info_get_from_input(
-            "What saved passage are you looking for?", &passage, env.curl,
+            "What saved passage are you looking for?: ", &passage, env.curl,
             env.curl_code, env.bible_version, env.bibles_arr, env.books_arr)) {
       return false;
     }
@@ -239,10 +240,12 @@ bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
   error_if(current_opt->data.type != SavedPassage,
            "Attempted to Get a Saved Passage's information when there is no "
            "Saved Passage given");
+  error_if(current_opt->data.value.saved_passage_obj == NULL,
+           "Attempted to Get Information from a NULL Saved Passage");
 
   char input_buff[INPUT_BUFF_LEN] = "\0";
   input_get("What field would you like to get (id, message, or context)?: ",
-            input_buff);
+            INPUT_BUFF_LEN, input_buff);
 
   PassageObjField req_field;
   if (strcmp(input_buff, "id") == 0) {
@@ -295,63 +298,87 @@ static const InputOption SAVED_PASSAGE_INFO_OPTION = {
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
     .data = {0}};
 
-// TODO: implement
 // Editing a Saved Passage
 void edit_saved_passage_option_print_desc(void) {
   puts("edit/edit info/edit field - Edit the passage's saved information");
 }
 
+// NOTE: edited fields must be present in the PASSAGES_FILE file
 bool edit_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
   error_if(current_opt->data.type != SavedPassage,
            "Attempted to Edit a Saved Passage's information when there is no "
            "Saved Passage given");
+  error_if(current_opt->data.value.saved_passage_obj == NULL,
+           "Attempted to Edit a NULL Saved Passage");
 
   char input_buff[INPUT_BUFF_LEN] = "\0";
-  input_get("What field would you like to edit (id, message, or context)?: ",
-            input_buff);
+  input_get("What field would you like to edit (id, message, or context): ",
+            INPUT_BUFF_LEN, input_buff);
 
-  // TODO: finish (use dynamic memory to make new input buffers)
   PassageObjField req_field;
+  size_t field_input_buff_size = 0;
   if (strcmp(input_buff, "id") == 0) {
     req_field = PassageObjId;
+    field_input_buff_size = PASSAGE_INPUT_BUFF_SIZE;
   } else if (strcmp(input_buff, "message") == 0) {
     req_field = PassageObjMessage;
+    field_input_buff_size = PASSAGE_MESSAGE_BUFF_SIZE;
   } else if (strcmp(input_buff, "context") == 0) {
     req_field = PassageObjContext;
+    field_input_buff_size = PASSAGE_CONTEXT_BUFF_SIZE;
   } else {
     fprintf(stderr, "%s is not a valid field for a saved passage\n",
             input_buff);
     return false;
   }
 
-  printf("What would you like to change the passage's %s to?: ", input_buff);
-  // printf("What is the context of the passage?: ");
-  // fgets(context_buff, PASSAGE_CONTEXT_BUFF_SIZE, stdin);
-  // // Remove trailing '\n'
-  // size_t context_buff_strlen = strnlen(context_buff, PASSAGE_CONTEXT_BUFF_SIZE);
-  // if (context_buff[context_buff_strlen - 1] == '\n') {
-  //   context_buff[context_buff_strlen - 1] = '\0';
-  // }
-  // fflush(stdout);
-  //
-  // cJSON *field = passage_obj_get_field(
-  //     current_opt->data.value.saved_passage_obj, req_field);
-  // printf("Here is the passage's saved %s:\n", input_buff);
-  // printf("%s\n", field->valuestring);
-  // if (req_field == PassageObjId) {
-  //   if (strcmp(field->valuestring, current_opt->data.value.passage_id) != 0) {
-  //     printf("This is what the ID should be: %s\n",
-  //            current_opt->data.value.passage_id);
-  //     error_if(true, "That's weird! The Saved Passage's ID doesn't match the "
-  //                    "one stored in code!\n");
-  //   }
-  //
-  //   printf("It's reference is: ");
-  //   PassageInfo passage_info;
-  //   passage_get_info_from_id(field->valuestring, &passage_info);
-  //   passage_print_reference(passage_info, *env.books_arr, false);
-  //   printf("\n");
-  // }
+  char *field_input_buff = (char *)malloc(field_input_buff_size * sizeof(char));
+  error_if(field_input_buff == NULL, "failed to malloc field editing buffer");
+
+  // Getting Input
+  printf("What would you like to change the passage's %s to%s", input_buff,
+         (req_field == PassageObjId) ? " (enter the passage in regularly)"
+                                     : "");
+  input_get("?: ", field_input_buff_size, field_input_buff);
+
+  // Changing Field in Object
+  if (req_field == PassageObjId) {
+    PassageInfo passage = {0};
+    PassageId passage_id;
+    if (!passage_info_get_from_string(field_input_buff, &passage, env.curl,
+                                      env.curl_code, env.bible_version,
+                                      env.bibles_arr, env.books_arr)) {
+      printf("Failed to parse given passage\n");
+      free(field_input_buff);
+      return false;
+    }
+
+    passage_get_id(passage, passage_id);
+    cJSON_ReplaceItemInObject(current_opt->data.value.saved_passage_obj,
+                              input_buff, cJSON_CreateString(passage_id));
+
+    // Changing current_opt passage_id to the new one
+    strncpy(current_opt->data.value.passage_id, passage_id,
+            MAX_PASSAGE_ID_LEN - 1);
+  } else {
+    cJSON_ReplaceItemInObject(current_opt->data.value.saved_passage_obj,
+                              input_buff, cJSON_CreateString(field_input_buff));
+  }
+
+  // Writing Changes to PASSAGES_FILE
+  // Serialize new json As text
+  char *json_txt = cJSON_Print(env.saved_passages_json);
+  error_if(json_txt == NULL, "failed to parse json after adding new passage");
+
+  // Write json Text to PASSAGES_FILE
+  FILE *file = fopen(PASSAGES_FILE, "w");
+  error_if(file == NULL, "failed to open " PASSAGES_FILE " up for writing");
+  fprintf(file, "%s", json_txt);
+
+  // Clean Up Memory
+  free(json_txt);
+  fclose(file);
+  free(field_input_buff);
 
   return false;
 }
@@ -372,7 +399,7 @@ static const InputOption EDIT_SAVED_PASSAGE_OPTION = {
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
     .data = {0}};
 
-// Global Option
+// Global/Home Option
 void global_option_print_desc(void) {
   puts("root/global/home - Go back to application home");
 }
@@ -420,15 +447,19 @@ void input_print_options_list(
 }
 
 // Getting and Processing Input
-void input_get(const char *message, char input_buff[static INPUT_BUFF_LEN]) {
+// NOTE: does not append ": " to message
+void input_get(const char *message, size_t buff_len, char *input_buff) {
   printf("%s", message);
   fflush(stdout);
+  fgets(input_buff, buff_len, stdin);
 
-  fgets(input_buff, INPUT_BUFF_LEN, stdin);
-  size_t input_buff_strlen = strnlen(input_buff, INPUT_BUFF_LEN);
+  // Remove trailing '\n'
+  size_t input_buff_strlen = strnlen(input_buff, buff_len);
   if (input_buff[input_buff_strlen - 1] == '\n') {
     input_buff[input_buff_strlen - 1] = '\0';
   }
+
+  fflush(stdout);
 }
 
 // Handling Input
