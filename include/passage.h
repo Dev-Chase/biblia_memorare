@@ -38,10 +38,10 @@ typedef struct PassageInfo {
 void passage_get_id(PassageInfo passage, PassageId passage_id);
 void passage_get_info_from_id(PassageId passage_id, PassageInfo *passage_info);
 // NOTE: returns whether input was valid
-bool passage_info_get_from_string(const char passage_str[PASSAGE_INPUT_BUFF_SIZE], PassageInfo *passage,
-                                 CURL *curl, CURLcode *result_code,
-                                 BibleVersion *version, cJSON *bibles_arr,
-                                 cJSON **books_arr);
+bool passage_info_get_from_string(
+    const char passage_str[PASSAGE_INPUT_BUFF_SIZE], PassageInfo *passage,
+    CURL *curl, CURLcode *result_code, BibleVersion *version, cJSON *bibles_arr,
+    cJSON **books_arr);
 // NOTE: returns whether input was valid
 bool passage_info_get_from_input(char *message, PassageInfo *passage,
                                  CURL *curl, CURLcode *result_code,
@@ -64,7 +64,9 @@ void passage_print_reference(PassageInfo passage, cJSON *books_arr,
 void passage_print_text(cJSON *passage_data, const char *bible);
 
 // Saved Passages
+cJSON *passages_array_get(cJSON *passages_json);
 cJSON *passages_get_by_id(cJSON *passages_json, PassageId req_id);
+int passages_get_passage_ind(cJSON *passages_json, cJSON *cmp_passage);
 cJSON *passages_get_random_entry(cJSON *passages_json);
 
 // JSON Passage Obj Manipulations

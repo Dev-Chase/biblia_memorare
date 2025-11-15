@@ -54,10 +54,10 @@ void esv_passage_url(PassageInfo passage, char url[URL_BUFF_LEN]) {
 }
 
 // NOTE: passage_str cannot be larger than PASSAGE_INPUT_BUFF_SIZE
-bool passage_info_get_from_string(const char passage_str[PASSAGE_INPUT_BUFF_SIZE], PassageInfo *passage,
-                                 CURL *curl, CURLcode *result_code,
-                                 BibleVersion *version, cJSON *bibles_arr,
-                                 cJSON **books_arr) {
+bool passage_info_get_from_string(
+    const char passage_str[PASSAGE_INPUT_BUFF_SIZE], PassageInfo *passage,
+    CURL *curl, CURLcode *result_code, BibleVersion *version, cJSON *bibles_arr,
+    cJSON **books_arr) {
   *passage = (PassageInfo){0};
   char passage_input[PASSAGE_INPUT_BUFF_SIZE] = "";
   char passage_input_tokenized[PASSAGE_INPUT_BUFF_SIZE] = "";
@@ -163,7 +163,9 @@ bool passage_info_get_from_input(char *message, PassageInfo *passage,
   input_get(message, PASSAGE_INPUT_BUFF_SIZE, passage_input);
 
   // Processing Input
-  bool res = passage_info_get_from_string(passage_input, passage, curl, result_code, version, bibles_arr, books_arr);
+  bool res =
+      passage_info_get_from_string(passage_input, passage, curl, result_code,
+                                   version, bibles_arr, books_arr);
 
   return res;
 }
@@ -299,7 +301,8 @@ cJSON *passages_get_json(void) {
   return root;
 }
 
-void passage_save(PassageId passage_id, char message[PASSAGE_MESSAGE_BUFF_SIZE], char context[PASSAGE_CONTEXT_BUFF_SIZE],
+void passage_save(PassageId passage_id, char message[PASSAGE_MESSAGE_BUFF_SIZE],
+                  char context[PASSAGE_CONTEXT_BUFF_SIZE],
                   cJSON *passages_json) {
   if (passages_get_by_id(passages_json, passage_id) != NULL) {
     printf("Passage %s is already saved in " PASSAGES_FILE "\n", passage_id);
@@ -341,10 +344,12 @@ bool passage_save_input(PassageId passage_id, cJSON *passages_json) {
   char context_buff[PASSAGE_CONTEXT_BUFF_SIZE];
 
   // Getting Meaning
-  input_get("What message would you like to save for this passage?: ", PASSAGE_MESSAGE_BUFF_SIZE, message_buff);
+  input_get("What message would you like to save for this passage?: ",
+            PASSAGE_MESSAGE_BUFF_SIZE, message_buff);
 
   // Getting Context
-  input_get("What is the context of the passage?: ", PASSAGE_CONTEXT_BUFF_SIZE, context_buff);
+  input_get("What is the context of the passage?: ", PASSAGE_CONTEXT_BUFF_SIZE,
+            context_buff);
 
   // Saving the Passage
   passage_save(passage_id, message_buff, context_buff, passages_json);
@@ -430,6 +435,22 @@ cJSON *passages_get_by_id(cJSON *passages_json, PassageId req_id) {
   }
 
   return NULL;
+}
+
+int passages_get_passage_ind(cJSON *passages_json, cJSON *cmp_passage) {
+  cJSON *passages_arr = passages_array_get(passages_json);
+
+  cJSON *passage_obj = NULL;
+  int i = 0;
+  cJSON_ArrayForEach(passage_obj, passages_arr) {
+    if (passage_obj == cmp_passage) {
+      return i;
+    }
+
+    i++;
+  }
+
+  return -1;
 }
 
 // NOTE: pointer returned belongs to passages_json and lasts for its lifetime

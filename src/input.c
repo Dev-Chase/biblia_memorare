@@ -13,6 +13,7 @@ static const InputOption GET_SAVED_PASSAGE_OPTION;
 static const InputOption RANDOM_SAVED_PASSAGE_OPTION;
 static const InputOption SAVED_PASSAGE_INFO_OPTION;
 static const InputOption EDIT_SAVED_PASSAGE_OPTION;
+static const InputOption DELETE_SAVED_PASSAGE_OPTION;
 
 // Input Option Specifics
 // Getting a Passage from the Bible
@@ -77,6 +78,7 @@ void save_passage_option_print_desc(void) {
   puts("save/passage save - Save a Passage");
 }
 
+// TODO: implement showing passage text as you save it
 bool save_passage_option_fn(InputOption *current_opt, AppEnv env) {
   // Set current_opt->data.value.passage_id if not just gotten through
   // retrieving a passage
@@ -120,11 +122,12 @@ static const InputOption SAVE_PASSAGE_OPTION = {
     .exec = save_passage_option_fn,
     .print_desc = save_passage_option_print_desc,
     .input_check = save_passage_option_input_check,
-    .n_sub_options = 4,
+    .n_sub_options = 5,
     .sub_options =
         (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
                                 &SAVED_PASSAGE_INFO_OPTION,
-                                &EDIT_SAVED_PASSAGE_OPTION},
+                                &EDIT_SAVED_PASSAGE_OPTION,
+                                &DELETE_SAVED_PASSAGE_OPTION},
     .data = {0}};
 
 // Getting a Saved Passage
@@ -179,12 +182,12 @@ static const InputOption GET_SAVED_PASSAGE_OPTION = {
     .exec = get_saved_passage_option_fn,
     .print_desc = get_saved_passage_option_print_desc,
     .input_check = get_saved_passage_option_input_check,
-    .n_sub_options = 5,
+    .n_sub_options = 6,
     .sub_options =
-        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
-                                &GET_SAVED_PASSAGE_OPTION,
-                                &SAVED_PASSAGE_INFO_OPTION,
-                                &EDIT_SAVED_PASSAGE_OPTION},
+        (const InputOption *[]){
+            &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+            &GET_SAVED_PASSAGE_OPTION, &SAVED_PASSAGE_INFO_OPTION,
+            &EDIT_SAVED_PASSAGE_OPTION, &DELETE_SAVED_PASSAGE_OPTION},
     .data = {0}};
 
 // Getting a Random Saved Passage
@@ -223,12 +226,12 @@ static const InputOption RANDOM_SAVED_PASSAGE_OPTION = {
     .exec = random_saved_passage_option_fn,
     .print_desc = random_saved_passage_option_print_desc,
     .input_check = random_saved_passage_option_input_check,
-    .n_sub_options = 5,
+    .n_sub_options = 6,
     .sub_options =
-        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
-                                &GET_SAVED_PASSAGE_OPTION,
-                                &SAVED_PASSAGE_INFO_OPTION,
-                                &EDIT_SAVED_PASSAGE_OPTION},
+        (const InputOption *[]){
+            &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+            &GET_SAVED_PASSAGE_OPTION, &SAVED_PASSAGE_INFO_OPTION,
+            &EDIT_SAVED_PASSAGE_OPTION, &DELETE_SAVED_PASSAGE_OPTION},
     .data = {0}};
 
 // Getting a Saved Passage's Information
@@ -412,6 +415,73 @@ static const InputOption EDIT_SAVED_PASSAGE_OPTION = {
     .exec = edit_saved_passage_option_fn,
     .print_desc = edit_saved_passage_option_print_desc,
     .input_check = edit_saved_passage_option_input_check,
+    // NOTE: sub_options should not be accessible here anyway
+    .n_sub_options = 1,
+    .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
+    .data = {0}};
+
+// Deleting a Saved Passage
+void delete_saved_passage_option_print_desc(void) {
+  puts("del/delete/delete passage - Delete the passage from " PASSAGES_FILE);
+}
+
+bool delete_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
+  error_if(
+      current_opt->data.type != SavedPassage,
+      "Attempted to Delete a Saved Passage when no Saved Passage was given");
+  error_if(current_opt->data.value.saved_passage_obj == NULL,
+           "Attempted to Delete a NULL Saved Passage");
+
+  // Finding the Saved Passage's Index in the JSON
+  int passage_obj_i = passages_get_passage_ind(
+      env.saved_passages_json, current_opt->data.value.saved_passage_obj);
+  if (passage_obj_i < 0) {
+    printf(
+        "Failed to delete passage: passage was not found in passages_json\n");
+    return false;
+  }
+
+  // Deleting the Saved Passage Object from the JSON
+  cJSON_DeleteItemFromArray(passages_array_get(env.saved_passages_json),
+                            passage_obj_i);
+
+  // Writing Changes to PASSAGES_FILE
+  // Serialize new json As text
+  char *json_txt = cJSON_Print(env.saved_passages_json);
+  error_if(json_txt == NULL, "failed to parse json after adding new passage");
+
+  // Write json Text to PASSAGES_FILE
+  FILE *file = fopen(PASSAGES_FILE, "w");
+  error_if(file == NULL, "failed to open " PASSAGES_FILE " up for writing");
+  fprintf(file, "%s", json_txt);
+
+  // Clean Up Memory
+  free(json_txt);
+  fclose(file);
+
+  printf("Succesfully Deleted the Saved Passage from " PASSAGES_FILE "\n");
+
+  // Unsetting the Passage in current_opt->data
+  current_opt->data.type = NoData;
+  current_opt->data.value.saved_passage_obj = NULL;
+
+  // Redirecting Back to Home
+  input_switch_option(current_opt, &GLOBAL_INPUT_OPTION);
+
+  return false;
+}
+
+bool delete_saved_passage_option_input_check(
+    char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "del") == 0) ||
+         (strcmp(input_buff, "delete") == 0) ||
+         (strcmp(input_buff, "delete passage") == 0);
+}
+
+static const InputOption DELETE_SAVED_PASSAGE_OPTION = {
+    .exec = delete_saved_passage_option_fn,
+    .print_desc = delete_saved_passage_option_print_desc,
+    .input_check = delete_saved_passage_option_input_check,
     // NOTE: sub_options should not be accessible here anyway
     .n_sub_options = 1,
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
