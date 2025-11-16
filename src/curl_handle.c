@@ -21,7 +21,7 @@ void curl_get_at_url(CURL *curl, CURLcode *result_code, CurlResponse *output,
       headers, (auth_header == NULL) ? DEFAULT_AUTH_HEADER : auth_header);
 
   // Setting Curl Options
-  printf("Performing a GET request at %s\n", url);
+  // printf("Performing a GET request at %s\n", url);
   curl_easy_setopt(curl, CURLOPT_URL, url);
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_chunk);

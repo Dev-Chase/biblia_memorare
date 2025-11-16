@@ -375,21 +375,24 @@ void passage_print_reference(PassageInfo passage, cJSON *books_arr,
   }
 }
 
-void passage_print_text(cJSON *passage_data, const char *bible) {
+void passage_print_text(cJSON *passage_data, const char *bible,
+                        bool print_reference) {
   puts("-------------------------------------------");
   cJSON *is_esv = cJSON_GetObjectItemCaseSensitive(passage_data, ESV_JSON_KEY);
   error_if(is_esv == NULL, ESV_JSON_KEY " key was not set in passage_data");
   error_if(!cJSON_IsBool(is_esv), ESV_JSON_KEY " was not a boolean");
 
-  cJSON *reference =
-      (cJSON_IsTrue(is_esv))
-          ? cJSON_GetObjectItemCaseSensitive(passage_data, "query")
-          : cJSON_GetObjectItemCaseSensitive(passage_data, "reference");
-  if (cJSON_IsString(reference) && (reference->valuestring != NULL)) {
-    if (bible != NULL) {
-      printf("%s (%s)\n\n", reference->valuestring, bible);
-    } else {
-      printf("%s\n\n", reference->valuestring);
+  if (print_reference) {
+    cJSON *reference =
+        (cJSON_IsTrue(is_esv))
+            ? cJSON_GetObjectItemCaseSensitive(passage_data, "query")
+            : cJSON_GetObjectItemCaseSensitive(passage_data, "reference");
+    if (cJSON_IsString(reference) && (reference->valuestring != NULL)) {
+      if (bible != NULL) {
+        printf("%s (%s)\n\n", reference->valuestring, bible);
+      } else {
+        printf("%s\n\n", reference->valuestring);
+      }
     }
   }
 
@@ -409,7 +412,7 @@ void passage_print_text(cJSON *passage_data, const char *bible) {
       printf("%s", content->valuestring);
     }
   }
-  puts("-------------------------------------------");
+  // puts("-------------------------------------------");
 }
 
 // Saved Passages

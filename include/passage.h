@@ -61,7 +61,7 @@ bool passage_save_input(PassageId passage_id, cJSON *passages_json);
 // Passage Interactions
 void passage_print_reference(PassageInfo passage, cJSON *books_arr,
                              bool newline);
-void passage_print_text(cJSON *passage_data, const char *bible);
+void passage_print_text(cJSON *passage_data, const char *bible, bool print_reference);
 
 // Saved Passages
 cJSON *passages_array_get(cJSON *passages_json);

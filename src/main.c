@@ -12,6 +12,31 @@
 #include <string.h>
 #include <time.h>
 
+// TODO: add these notable passages to PASSAGES_FILE
+// Romans 14:11
+// James 2
+// James 4
+// 1 Peter 3
+// 1 Peter 5
+// Psalm 91
+// Psalm 94
+// Psalm 33
+// Exodus 33
+// Deuteronomy 6:4-6
+// Deuteronomy 11 (review)
+// Genesis 50:20
+// Psalm 23
+// Psalm 32
+// Psalm 62
+// Psalm 51
+// Luke 18
+// Parts of Matthew 5, 6, 7, 8
+// John 3:33
+// John 16:33
+// John 16 statements
+// John 6 on the Eucharist
+// 1 Corinthians 11 on the Eucharist
+
 // Old Testing
 // const char *url = "https://bible-api.com/john%203:16-20?translation=kjv";
 // const char *url =
@@ -81,7 +106,7 @@ int main(void) {
     // Process Input
     input_process(&current_option, app_env);
 
-    puts("-----------------------------------");
+    puts("-------------------------------------------");
   }
 
   // Cleaning Up Curl

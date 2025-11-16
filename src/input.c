@@ -14,6 +14,7 @@ static const InputOption RANDOM_SAVED_PASSAGE_OPTION;
 static const InputOption SAVED_PASSAGE_INFO_OPTION;
 static const InputOption EDIT_SAVED_PASSAGE_OPTION;
 static const InputOption DELETE_SAVED_PASSAGE_OPTION;
+static const InputOption QUIZ_OPTION;
 
 // Input Option Specifics
 // Getting a Passage from the Bible
@@ -41,7 +42,8 @@ bool get_passage_option_fn(InputOption *current_opt, AppEnv env) {
       passage_get_data(passage, env.curl, env.curl_code, *env.bible_version);
   if (passage_data != NULL) {
     // Printing Passage Text
-    passage_print_text(passage_data, env.bible_version->abbr);
+    passage_print_text(passage_data, env.bible_version->abbr,
+                       (current_opt->data.type == SavedPassage) ? false : true);
 
     // Saving PassageID to current_opt if going to Switch Option
     if (replace_current_opt) {
@@ -78,7 +80,6 @@ void save_passage_option_print_desc(void) {
   puts("save/passage save - Save a Passage");
 }
 
-// TODO: implement showing passage text as you save it
 bool save_passage_option_fn(InputOption *current_opt, AppEnv env) {
   // Set current_opt->data.value.passage_id if not just gotten through
   // retrieving a passage
@@ -92,6 +93,9 @@ bool save_passage_option_fn(InputOption *current_opt, AppEnv env) {
     }
 
     passage_get_id(passage, current_opt->data.value.passage_id);
+
+    current_opt->data.type = SavedPassage;
+    get_passage_option_fn(current_opt, env);
   }
 
   passage_save_input(current_opt->data.value.passage_id,
@@ -104,6 +108,7 @@ bool save_passage_option_fn(InputOption *current_opt, AppEnv env) {
   // NOTE: pointer lasts for lifetime of env.saved_passages_json
   current_opt->data.value.saved_passage_obj = passages_get_by_id(
       env.saved_passages_json, current_opt->data.value.passage_id);
+
   // Only NULL if it was not saved or is not already saved, which should never
   // happen
   error_if(current_opt->data.value.saved_passage_obj == NULL,
@@ -182,12 +187,13 @@ static const InputOption GET_SAVED_PASSAGE_OPTION = {
     .exec = get_saved_passage_option_fn,
     .print_desc = get_saved_passage_option_print_desc,
     .input_check = get_saved_passage_option_input_check,
-    .n_sub_options = 6,
+    .n_sub_options = 7,
     .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
-            &GET_SAVED_PASSAGE_OPTION, &SAVED_PASSAGE_INFO_OPTION,
-            &EDIT_SAVED_PASSAGE_OPTION, &DELETE_SAVED_PASSAGE_OPTION},
+            &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
+            &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
+            &DELETE_SAVED_PASSAGE_OPTION},
     .data = {0}};
 
 // Getting a Random Saved Passage
@@ -226,12 +232,13 @@ static const InputOption RANDOM_SAVED_PASSAGE_OPTION = {
     .exec = random_saved_passage_option_fn,
     .print_desc = random_saved_passage_option_print_desc,
     .input_check = random_saved_passage_option_input_check,
-    .n_sub_options = 6,
+    .n_sub_options = 7,
     .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
-            &GET_SAVED_PASSAGE_OPTION, &SAVED_PASSAGE_INFO_OPTION,
-            &EDIT_SAVED_PASSAGE_OPTION, &DELETE_SAVED_PASSAGE_OPTION},
+            &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
+            &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
+            &DELETE_SAVED_PASSAGE_OPTION},
     .data = {0}};
 
 // Getting a Saved Passage's Information
@@ -255,17 +262,23 @@ bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
     strncpy(input_buff, &current_opt->data.input_buff[input_start_len + 1],
             INPUT_BUFF_LEN - 1);
   } else {
-    input_get("What field would you like to see (id, message, or context)?: ",
+    input_get("What field would you like to see (id/name, content, message, or "
+              "context)?: ",
               INPUT_BUFF_LEN, input_buff);
   }
 
   PassageObjField req_field;
-  if (strcmp(input_buff, "id") == 0) {
+  if (strcmp(input_buff, "id") == 0 || strcmp(input_buff, "name") == 0 ||
+      strcmp(input_buff, "reference") == 0) {
     req_field = PassageObjId;
   } else if (strcmp(input_buff, "message") == 0) {
     req_field = PassageObjMessage;
   } else if (strcmp(input_buff, "context") == 0) {
     req_field = PassageObjContext;
+  } else if (strcmp(input_buff, "content") == 0 ||
+             strcmp(input_buff, "text") == 0) {
+    get_passage_option_fn(current_opt, env);
+    return false;
   } else {
     fprintf(stderr, "%s is not a valid field for a saved passage\n",
             input_buff);
@@ -487,13 +500,73 @@ static const InputOption DELETE_SAVED_PASSAGE_OPTION = {
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
     .data = {0}};
 
+// Quiz Option
 // TODO: add quiz option
 //   - include getting a passage's content without getting its reference then
 //   guessing it and vice versa (verifying if the reference is right, but
 //   perhaps not the wording of the passage unless a library is found to compare
 //   text
 //   - include guessing the message & context
-// TODO: add deleting entry option
+// TODO: implement several "modes" (e.g. guessing reference, guessing text,
+// guessing meaning, guessing context, guessing book or translation, etc)
+// or difficultly levels
+void quiz_option_print_desc(void) {
+  puts("quiz - Take a quiz on random saved passages");
+}
+
+bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
+  // TODO: implement Selecting Number of Passages
+  int n_passages = 5;
+  int n_correct = 0;
+
+  // Guessing
+  for (int i = 0; i < n_passages; i++) {
+    printf("Procuring Passage #%d\n", i + 1);
+
+    // Select Passage
+    // TODO: improve random passage retrieval - determine the random passages
+    // ahead of time and ensure there are no duplicates
+    random_saved_passage_option_fn(current_opt, env);
+    // No need for error checking because should already fail if couldn't
+    // procure random passage
+
+    // Show Text
+    get_passage_option_fn(current_opt, env);
+
+    // Guess Reference
+    PassageInfo guessed_passage;
+    PassageId guessed_passage_id;
+    passage_info_get_from_input("What passage is that?: ", &guessed_passage,
+                                env.curl, env.curl_code, env.bible_version,
+                                env.bibles_arr, env.books_arr);
+    passage_get_id(guessed_passage, guessed_passage_id);
+
+    // Verify Answer
+    if (strcmp(current_opt->data.value.passage_id, guessed_passage_id) == 0) {
+      puts("You got that one right!");
+      n_correct++;
+    }
+  }
+
+  printf("You got %d/%d questions right. That's a %.2f%%\n", n_correct,
+         n_passages, (((double)(n_correct) / (double)(n_passages)) * 100.0));
+
+  return false;
+}
+
+bool quiz_option_input_check(char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "quiz") == 0);
+}
+
+// TODO: make sub-option to more options
+static const InputOption QUIZ_OPTION = {
+    .exec = quiz_option_fn,
+    .print_desc = quiz_option_print_desc,
+    .input_check = quiz_option_input_check,
+    // NOTE: sub_options should not be accessible here anyway
+    .n_sub_options = 1,
+    .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
+    .data = {0}};
 
 // Global/Home Option
 void global_option_print_desc(void) {
@@ -515,11 +588,11 @@ const InputOption GLOBAL_INPUT_OPTION = {
     .exec = global_option_fn,
     .print_desc = global_option_print_desc,
     .input_check = global_option_input_check,
-    .n_sub_options = 4,
+    .n_sub_options = 5,
     .sub_options =
         (const InputOption *[]){&GET_PASSAGE_OPTION, &SAVE_PASSAGE_OPTION,
                                 &RANDOM_SAVED_PASSAGE_OPTION,
-                                &GET_SAVED_PASSAGE_OPTION},
+                                &GET_SAVED_PASSAGE_OPTION, &QUIZ_OPTION},
     .data = {0}};
 
 void input_show_options_desc(void) {
