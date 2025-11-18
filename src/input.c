@@ -203,7 +203,7 @@ void random_saved_passage_option_print_desc(void) {
 
 bool random_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
   cJSON *passage_obj = passages_get_random_entry(env.saved_passages_json);
-  error_if(passage_obj == NULL, "Failed to get a random entry!");
+  // Error Handling already done
 
   printf("Successfully Retrieved a Random Passage\n");
   current_opt->data.type = SavedPassage;
@@ -212,8 +212,6 @@ bool random_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
   // Getting Passage ID
   cJSON *passage_obj_id = passage_obj_get_field(passage_obj, PassageObjId);
 
-  // NOTE: no need for bounds checking since both are of type PassageId (char[]
-  // of the same length) and should be null-terminated
   strncpy(current_opt->data.value.passage_id, passage_obj_id->valuestring,
           MAX_PASSAGE_ID_LEN - 1);
   // NOTE: bounds checking is done to prevent overflows, but it does not
@@ -515,20 +513,43 @@ void quiz_option_print_desc(void) {
 }
 
 bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
-  // TODO: implement Selecting Number of Passages
-  int n_passages = 5;
-  int n_correct = 0;
+  // TODO: implement Selecting Number of Passages (default to 5 if invalid
+  // number given [or maybe quit option])
+  size_t n_passages = 5;
+  size_t n_correct = 0;
+  cJSON **random_passages = (cJSON **)malloc(n_passages * sizeof(cJSON *));
+
+  // Getting Random Passages
+  puts("Collecting Quiz Passages");
+  for (size_t i = 0; i < n_passages; i++) {
+    cJSON *random_passage = NULL;
+    bool duplicate_passage = false;
+
+    do {
+      random_passage = passages_get_random_entry(env.saved_passages_json);
+      duplicate_passage = false;
+      for (size_t j = 0; j < i; j++) {
+        if (random_passages[j] == random_passage) {
+          duplicate_passage = true;
+          break;
+        }
+      }
+
+    } while (duplicate_passage);
+
+    random_passages[i] = random_passage;
+  }
+  puts("Successfully Collected all Quiz Passages!");
 
   // Guessing
-  for (int i = 0; i < n_passages; i++) {
-    printf("Procuring Passage #%d\n", i + 1);
-
-    // Select Passage
-    // TODO: improve random passage retrieval - determine the random passages
-    // ahead of time and ensure there are no duplicates
-    random_saved_passage_option_fn(current_opt, env);
-    // No need for error checking because should already fail if couldn't
-    // procure random passage
+  for (size_t i = 0; i < n_passages; i++) {
+    // Set current_opt passage to random passage at index
+    current_opt->data.type = SavedPassage;
+    current_opt->data.value.saved_passage_obj = random_passages[i];
+    cJSON *random_passage_id =
+        passage_obj_get_field(random_passages[i], PassageObjId);
+    strncpy(current_opt->data.value.passage_id, random_passage_id->valuestring,
+            MAX_PASSAGE_ID_LEN - 1);
 
     // Show Text
     get_passage_option_fn(current_opt, env);
@@ -536,9 +557,11 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
     // Guess Reference
     PassageInfo guessed_passage;
     PassageId guessed_passage_id;
-    passage_info_get_from_input("What passage is that?: ", &guessed_passage,
-                                env.curl, env.curl_code, env.bible_version,
-                                env.bibles_arr, env.books_arr);
+    while (!passage_info_get_from_input(
+        "What passage is that?: ", &guessed_passage, env.curl, env.curl_code,
+        env.bible_version, env.bibles_arr, env.books_arr)) {
+      printf("Hmm, that doesn't look quite right. Try again.\n");
+    }
     passage_get_id(guessed_passage, guessed_passage_id);
 
     // Verify Answer
@@ -548,8 +571,9 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
     }
   }
 
-  printf("You got %d/%d questions right. That's a %.2f%%\n", n_correct,
+  printf("You got %zu/%zu questions right. That's a(n) %.2f%%\n", n_correct,
          n_passages, (((double)(n_correct) / (double)(n_passages)) * 100.0));
+  free(random_passages);
 
   return false;
 }

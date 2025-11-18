@@ -13,6 +13,36 @@
 #include <time.h>
 
 // TODO: add these notable passages to PASSAGES_FILE
+// Genesis 50:20
+// Exodus 33
+// Numbers (priestly benediction)
+// Deuteronomy 6:5, 8:17-18
+// Judges (end) (in comparison with Deuteronomy 11)
+// Psalms
+//  16?
+//  23 (and/or) 32
+//  33
+//  34
+//  5_
+//  62
+//  91
+//  94
+//  Moses Psalm
+// Proverbs
+//   3
+//   12:15
+//   26:4-5
+//   30 (son reference)
+//   31 (end)
+// Ecclesiastes
+//   1:1-2
+//   3:20
+// Isaiah 40:(17?) 53
+// Jonah
+//
+//
+//
+//
 // Romans 14:11
 // James 2
 // James 4

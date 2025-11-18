@@ -54,6 +54,8 @@ void esv_passage_url(PassageInfo passage, char url[URL_BUFF_LEN]) {
 }
 
 // NOTE: passage_str cannot be larger than PASSAGE_INPUT_BUFF_SIZE
+// returns whether passage string was valid
+// TODO: fix capitalization issue with books not being capitalized (proverbs, for ex)j
 bool passage_info_get_from_string(
     const char passage_str[PASSAGE_INPUT_BUFF_SIZE], PassageInfo *passage,
     CURL *curl, CURLcode *result_code, BibleVersion *version, cJSON *bibles_arr,
@@ -154,6 +156,7 @@ bool passage_info_get_from_string(
 }
 
 // NOTE: does not append ": " to message
+// Returns whether input was valid
 bool passage_info_get_from_input(char *message, PassageInfo *passage,
                                  CURL *curl, CURLcode *result_code,
                                  BibleVersion *version, cJSON *bibles_arr,
@@ -457,6 +460,7 @@ int passages_get_passage_ind(cJSON *passages_json, cJSON *cmp_passage) {
 }
 
 // NOTE: pointer returned belongs to passages_json and lasts for its lifetime
+// Crashes if received passage is invalid
 cJSON *passages_get_random_entry(cJSON *passages_json) {
   cJSON *passages_arr = passages_array_get(passages_json);
 
