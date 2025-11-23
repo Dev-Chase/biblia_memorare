@@ -38,8 +38,8 @@ void passage_url(PassageInfo passage, const char *bible_id,
   snprintf(url, URL_BUFF_LEN * sizeof(char),
            "https://api.scripture.api.bible/v1/bibles/%s/passages/"
            "%s?content-type=text&include-notes=false&include-"
-           "titles=true&include-chapter-numbers=false&include-verse-numbers="
-           "true&include-verse-spans=false&use-org-id=false",
+           "titles=true&include-chapter-numbers=false&include-verse-spans="
+           "false&use-org-id=false&include-verse-numbers=false",
            bible_id, passage_id);
 }
 
@@ -48,14 +48,16 @@ void esv_passage_url(PassageInfo passage, char url[URL_BUFF_LEN]) {
   passage_get_id(passage, passage_id);
   snprintf(url, URL_BUFF_LEN * sizeof(char),
            "https://api.esv.org/v3/passage/text/?q="
-           "%s&include-passage-references=false&include-footnotes=false",
+           "%s&include-passage-references=false&include-footnotes=false&"
+           "include-verse-numbers=false",
            passage_id);
   // "&include-heading-horizontal-lines=true"
 }
 
 // NOTE: passage_str cannot be larger than PASSAGE_INPUT_BUFF_SIZE
 // returns whether passage string was valid
-// TODO: fix capitalization issue with books not being capitalized (proverbs, for ex)j
+// TODO: fix capitalization issue with books not being capitalized (proverbs,
+// for ex)j
 bool passage_info_get_from_string(
     const char passage_str[PASSAGE_INPUT_BUFF_SIZE], PassageInfo *passage,
     CURL *curl, CURLcode *result_code, BibleVersion *version, cJSON *bibles_arr,
@@ -178,6 +180,7 @@ bool passage_info_get_from_input(char *message, PassageInfo *passage,
 cJSON *passage_get_data(PassageInfo passage, CURL *curl, CURLcode *result_code,
                         BibleVersion bible_version) {
   char url[URL_BUFF_LEN];
+  // TODO: add option to control whether verse numbers are retrieved
   if (bible_version.is_esv) {
     esv_passage_url(passage, url);
   } else {

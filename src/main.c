@@ -14,36 +14,133 @@
 
 // TODO: add these notable passages to PASSAGES_FILE
 // Genesis 50:20
-// Exodus 33
+// Exodus 20 + 33
 // Numbers (priestly benediction)
 // Deuteronomy 6:5, 8:17-18
-// Judges (end) (in comparison with Deuteronomy 11)
+// Judges 17:6, 21:25 (In Comparison with Deuteronomy 12:8)
+// 1 Samuel 16:7 (read around it too)
+// David's Repentance in 1 or 2 Samuel
+// Job 1:21
+// Job 28:23-28
 // Psalms
 //  16?
-//  23 (and/or) 32
+//  17
+//  23
+//  32
 //  33
 //  34
+//  46
 //  5_
 //  62
 //  91
 //  94
-//  Moses Psalm
+//  Moses Psalms
 // Proverbs
-//   3
+//   3 (especially 5-7)
 //   12:15
+//   (18 or 19)?
 //   26:4-5
 //   30 (son reference)
 //   31 (end)
 // Ecclesiastes
 //   1:1-2
 //   3:20
-// Isaiah 40:(17?) 53
+// Isaiah
+//  40:6-8
+//  53
 // Jonah
+
+/** Gospels **/
+// Matthew
+// NOTE: there is so much to note that I am going to leave it as such
+// for now. This application was meant to help me write this down, but I find
+// myself writing it down before writing it down. It would be better to get the
+// ones that I want to remember written down, then read through the gospels and
+// take notes as I go
 //
-//
-//
-//
-// Romans 14:11
+//  3:1-3
+//  3:8-10
+//  3:16-17
+//  4:1-11 (consider adding a way to exclude certain passages that are too large
+//  from quizzes)
+//    4:3-4 - First Temptation: Man shall not live by bread alone
+//    4:5-7 - Second Temptation: Do not tempt the Lord your God
+//    4:8-10 - Third Temptation: Worship is due to God alone
+//  4:18-22 - Calling Simon, Andrew, James, and John
+//  5:1-12 (already saved in file)
+//  5:13
+//  5:14-16
+//  (Consider 5:17-20)
+//  5:21-26 - About Anger
+//  5:27-30 - Adultery + Graveness of Sin (Ties then into divorce)
+//    5:31-32 - Divorce
+//  5:33-37 - Lying
+//  5:38-42 - Retaliation
+//  5:43-48 - Love for Enemies
+//  6:1-4 - Acting in Secret for God's sake and not for Recognition
+//  6:6-7
+//  6:7-15 - Our Father + Warning About Forgiveness
+//    7-13 - Our Father
+//    14-15 - Warning about Forgiveness
+//  6:17-18 (Need to save or no? - Consider saving at a later time or adding
+//  associated difficulty or depth levels to passages) 6:19-21 - Treasures in
+//  Heaven 6:22-23 (To study) 6:24 - Serving Two Masters 6:25-34 - Worrying
+//  7:1-5 - Hypocrisy
+//  7:7-12 - Ask, Seek, Knock
+//  7:13-14 - Narrow Gate
+//  7:15-20 - False Prophets
+//  7:21-23 - Self-Deception (Important)
+//  7:24-27 - Doing and not simply hearing
+//  8:5-13
+//    8:7-8 - "I am not worthy that you should come under my roof"
+//  8:16-17
+//  8:19-22 (To study)
+//  8:23-27 - Calming the storm
+//  8:29-32 - Authority of Demons
+//  9:1-8 (Link to Mark 2)
+//  9:9 - Be ready like Matthew to abandon everything
+//  9:10-13
+//    9:12-13 especially
+//  9:14-15 - We are still commanded to fast
+//  9:24-26
+//  9:36-38
+//  18
+
+// Mark
+//  2
+//  8
+//  10
+
+// Luke
+//  18
+//  23:34
+
+// John
+// To-add: I am statements
+//  3:16
+//  3:30
+//  6 (eucharist)
+//  8
+//  14:27
+//  16
+//    16:33
+
+/** Acts & Epistles **/
+// Romans
+//  8
+//    (beginning)
+//    26
+//    28
+//    31
+//    end
+//  5 (on perseverance)
+//  1 (on God's attributes)
+//  7
+//  4 (new Adam)
+//  12:14-21
+//  14
+//    11
+//    19
 // James 2
 // James 4
 // 1 Peter 3

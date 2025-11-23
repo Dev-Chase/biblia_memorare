@@ -517,6 +517,18 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
   // number given [or maybe quit option])
   size_t n_passages = 5;
   size_t n_correct = 0;
+
+  char input_num_buff[INPUT_BUFF_LEN];
+  input_get("How many passages do you want to be quizzed on?: ", INPUT_BUFF_LEN,
+            input_num_buff);
+  long inputted_num = strtol(input_num_buff, (char **)NULL, 10);
+  if (inputted_num > 0) {
+    n_passages = (size_t)inputted_num;
+  } else {
+    printf("Inputted Number was invalid, defaulting to %zu instead\n",
+           n_passages);
+  }
+
   cJSON **random_passages = (cJSON **)malloc(n_passages * sizeof(cJSON *));
 
   // Getting Random Passages
@@ -568,6 +580,13 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
     if (strcmp(current_opt->data.value.passage_id, guessed_passage_id) == 0) {
       puts("You got that one right!");
       n_correct++;
+    } else {
+      PassageInfo correct_passage;
+      passage_get_info_from_id(current_opt->data.value.passage_id,
+                               &correct_passage);
+
+      printf("Sorry, that was wrong. The correct answer was: ");
+      passage_print_reference(correct_passage, *env.books_arr, true);
     }
   }
 
@@ -582,6 +601,7 @@ bool quiz_option_input_check(char input_buff[static INPUT_BUFF_LEN]) {
   return (strcmp(input_buff, "quiz") == 0);
 }
 
+// TODO: consider adding sub option to analyze results
 // TODO: make sub-option to more options
 static const InputOption QUIZ_OPTION = {
     .exec = quiz_option_fn,
