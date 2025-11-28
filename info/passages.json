@@ -31,5 +31,25 @@
 			"id":	"DEU.8.17-DEU.8.18",
 			"message":	"Beware so as not to believe that you are responsible for your blessings, for even the power that you used to obtain them has been given to you.",
 			"context":	"A warning not to forget God in good times"
+		}, {
+			"id":	"GEN.50.20",
+			"message":	"God brings good out of all things, even the evil of others. See Romans 8:28.",
+			"context":	"Joseph comforts his brothers as they ask him for forgiiveness for the evil they did to him."
+		}, {
+			"id":	"EXO.20.1-EXO.20.17",
+			"message":	"The 10 Commandments - The core commandments of God's moral law.",
+			"context":	"Moses gives the 10 Commandments at Mount Sinai."
+		}, {
+			"id":	"DEU.6.4-DEU.6.6",
+			"message":	"Part of the shema for the jewish people and one of the two most important commandments according to Jesus.",
+			"context":	"Moses warns the people of Israel to remain faithful and advises them as to how before entering the promised land."
+		}, {
+			"id":	"1SA.16.7",
+			"message":	"God looks at a man's heart, not his appearances and therefore you should too. In the same way, do not judge people, for you cannot see what is in their hearts.",
+			"context":	"God tells Samuel who from Jesse's house to appoint as king."
+		}, {
+			"id":	"JOB.1.20-JOB.1.21",
+			"message":	"All that you have you have received. You are not entitled to it. The Lord gives and He takes away, and in doing so does no wrong. Be grateful therefore for what you have and don't take it for granted. Know most of all that you will surely lose it all one day at your death.",
+			"context":	"Job reacts after having lost all his property and his children."
 		}]
 }

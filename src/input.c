@@ -10,6 +10,7 @@ const InputOption GLOBAL_INPUT_OPTION;
 static const InputOption GET_PASSAGE_OPTION;
 static const InputOption SAVE_PASSAGE_OPTION;
 static const InputOption GET_SAVED_PASSAGE_OPTION;
+static const InputOption SEARCH_SAVED_PASSAGES_OPTION;
 static const InputOption RANDOM_SAVED_PASSAGE_OPTION;
 static const InputOption SAVED_PASSAGE_INFO_OPTION;
 static const InputOption EDIT_SAVED_PASSAGE_OPTION;
@@ -187,6 +188,40 @@ static const InputOption GET_SAVED_PASSAGE_OPTION = {
     .exec = get_saved_passage_option_fn,
     .print_desc = get_saved_passage_option_print_desc,
     .input_check = get_saved_passage_option_input_check,
+    .n_sub_options = 7,
+    .sub_options =
+        (const InputOption *[]){
+            &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+            &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
+            &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
+            &DELETE_SAVED_PASSAGE_OPTION},
+    .data = {0}};
+
+// Searching Through Saved Passages
+void search_saved_passages_option_print_desc(void) {
+  puts("search/find/search passages - Search through saved passages");
+}
+
+// TODO: implement getting a list of filtered passages
+bool search_saved_passages_option_fn(InputOption *current_opt, AppEnv env) {
+  char search_key[PASSAGE_INPUT_BUFF_SIZE];
+  input_get("What is your search key?: ", PASSAGE_INPUT_BUFF_SIZE, search_key);
+
+  return true;
+}
+
+bool search_saved_passages_option_input_check(
+    char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "search") == 0) ||
+         (strcmp(input_buff, "find") == 0) ||
+         (strcmp(input_buff, "search passages") == 0);
+}
+
+// TODO: add as sub-option to more options
+static const InputOption SEARCH_SAVED_PASSAGES_OPTION = {
+    .exec = search_saved_passages_option_fn,
+    .print_desc = search_saved_passages_option_print_desc,
+    .input_check = search_saved_passages_option_input_check,
     .n_sub_options = 7,
     .sub_options =
         (const InputOption *[]){
@@ -498,6 +533,9 @@ static const InputOption DELETE_SAVED_PASSAGE_OPTION = {
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
     .data = {0}};
 
+// TODO: add option for searching through saved passages (e.g. filtering by
+// book_name or chapter, etc)
+
 // Quiz Option
 // TODO: add quiz option
 //   - include getting a passage's content without getting its reference then
@@ -632,9 +670,10 @@ const InputOption GLOBAL_INPUT_OPTION = {
     .exec = global_option_fn,
     .print_desc = global_option_print_desc,
     .input_check = global_option_input_check,
-    .n_sub_options = 5,
+    .n_sub_options = 6,
     .sub_options =
         (const InputOption *[]){&GET_PASSAGE_OPTION, &SAVE_PASSAGE_OPTION,
+                                &SEARCH_SAVED_PASSAGES_OPTION,
                                 &RANDOM_SAVED_PASSAGE_OPTION,
                                 &GET_SAVED_PASSAGE_OPTION, &QUIZ_OPTION},
     .data = {0}};

@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 #define MAX_PASSAGE_ID_LEN 32
-#define PASSAGE_INPUT_BUFF_SIZE 64 // NOTE: >= BIBLE_MAX_BOOK_NAME_LEN + 10
+#define PASSAGE_INPUT_BUFF_SIZE 84 // NOTE: >= BIBLE_MAX_BOOK_NAME_LEN + 30
 #define MAX_ESV_PASSAGE_QUIERY_LEN 100
 #define PASSAGE_MESSAGE_BUFF_SIZE 1024
 #define PASSAGE_CONTEXT_BUFF_SIZE 512
@@ -38,6 +38,10 @@ typedef struct PassageInfo {
 void passage_get_id(PassageInfo passage, PassageId passage_id);
 void passage_get_info_from_id(PassageId passage_id, PassageInfo *passage_info);
 // NOTE: returns whether input was valid
+bool passage_get_book_name_from_passage_string(
+    const char passage_str[PASSAGE_INPUT_BUFF_SIZE],
+    char book_name[MAX_BOOK_NAME_LEN], size_t *last_token_start_i);
+// NOTE: returns whether input was valid
 bool passage_info_get_from_string(
     const char passage_str[PASSAGE_INPUT_BUFF_SIZE], PassageInfo *passage,
     CURL *curl, CURLcode *result_code, BibleVersion *version, cJSON *bibles_arr,
@@ -61,7 +65,8 @@ bool passage_save_input(PassageId passage_id, cJSON *passages_json);
 // Passage Interactions
 void passage_print_reference(PassageInfo passage, cJSON *books_arr,
                              bool newline);
-void passage_print_text(cJSON *passage_data, const char *bible, bool print_reference);
+void passage_print_text(cJSON *passage_data, const char *bible,
+                        bool print_reference);
 
 // Saved Passages
 cJSON *passages_array_get(cJSON *passages_json);

@@ -54,10 +54,47 @@ void esv_passage_url(PassageInfo passage, char url[URL_BUFF_LEN]) {
   // "&include-heading-horizontal-lines=true"
 }
 
+bool passage_get_book_name_from_passage_string(
+    const char passage_str[PASSAGE_INPUT_BUFF_SIZE],
+    char book_name[MAX_BOOK_NAME_LEN], size_t *last_token_start_i) {
+  char passage_input_tokenized[PASSAGE_INPUT_BUFF_SIZE] = "";
+  strncpy(passage_input_tokenized, passage_str, PASSAGE_INPUT_BUFF_SIZE - 1);
+  book_name[0] = '\0'; // Clear book_name string in case not empty
+
+  // Tokenizing Beginning of Inputted String to get Book Name
+  char *token = strtok(passage_input_tokenized, " ");
+  if (token == NULL || token[0] == '\n') {
+    fprintf(stderr, "Passage Inputted was empty\n");
+    *last_token_start_i = 0;
+    return false;
+  }
+
+  // Capitalize first word in book if > 2 chars
+  if (strnlen(token, MAX_BOOK_NAME_LEN - 1) > 2) {
+    token[0] = toupper(token[0]);
+  }
+  // Add first word to book name
+  strncat(book_name, token, MAX_BOOK_NAME_LEN - 1);
+
+  while ((token = strtok(NULL, " ")) != NULL && !isdigit(token[0])) {
+    strncat(book_name, " ",
+            MAX_BOOK_NAME_LEN - strnlen(book_name, MAX_BOOK_NAME_LEN - 1) - 1);
+
+    // Capitalize Book Name if length is above 2 characters (to account for Song
+    // of Solomon)
+    if (strnlen(token, MAX_BOOK_NAME_LEN - 1) > 2) {
+      token[0] = toupper(token[0]);
+    }
+    strncat(book_name, token,
+            MAX_BOOK_NAME_LEN - strnlen(book_name, MAX_BOOK_NAME_LEN - 1) - 1);
+  }
+
+  *last_token_start_i = (token - passage_input_tokenized);
+  return true;
+}
+
 // NOTE: passage_str cannot be larger than PASSAGE_INPUT_BUFF_SIZE
 // returns whether passage string was valid
-// TODO: fix capitalization issue with books not being capitalized (proverbs,
-// for ex)j
 bool passage_info_get_from_string(
     const char passage_str[PASSAGE_INPUT_BUFF_SIZE], PassageInfo *passage,
     CURL *curl, CURLcode *result_code, BibleVersion *version, cJSON *bibles_arr,
@@ -68,39 +105,26 @@ bool passage_info_get_from_string(
   strncpy(passage_input, passage_str, PASSAGE_INPUT_BUFF_SIZE - 1);
   strncpy(passage_input_tokenized, passage_str, PASSAGE_INPUT_BUFF_SIZE - 1);
   char book_name[MAX_BOOK_NAME_LEN] = "";
+  size_t numbers_start = 0;
 
-  // Tokenizing Beginning of Inputted String to get Book Name
-  char *token = strtok(passage_input_tokenized, " ");
-  if (token == NULL || token[0] == '\n') {
-    fprintf(stderr, "Passage Inputted was empty\n");
+  if (!passage_get_book_name_from_passage_string(passage_str, book_name,
+                                                 &numbers_start)) {
     *passage = (PassageInfo){0};
     return false;
   }
-  strncat(book_name, token, sizeof(book_name) - 1);
-  while ((token = strtok(NULL, " ")) != NULL && !isdigit(token[0])) {
-    strncat(book_name, " ",
-            sizeof(book_name) - strnlen(book_name, MAX_BOOK_NAME_LEN - 1) - 1);
-
-    // Capitalize Book Name if length is above 2 characters (to account for Song
-    // of Solomon)
-    if (strnlen(token, MAX_BOOK_NAME_LEN - 1) > 2) {
-      token[0] = toupper(token[0]);
-    }
-    strncat(book_name, token,
-            sizeof(book_name) - strnlen(book_name, MAX_BOOK_NAME_LEN - 1) - 1);
-  }
 
   // Offsetting the inputted string so that the book name is no longer included
-  if (token == NULL) {
+  if (passage_input[numbers_start] == '\0') {
     fprintf(stderr, "No chapter or verse inputted after the book name\n");
     *passage = (PassageInfo){0};
     return false;
   }
 
-  size_t numbers_start = (token - passage_input_tokenized);
-  memmove(passage_input, (char *)(passage_input + numbers_start),
-          strnlen((char *)(passage_input + numbers_start),
-                  PASSAGE_INPUT_BUFF_SIZE - 1));
+  // TODO: verify if overflow (PASSAGE_INPUT_BUFF_SIZE - 1 might be too big)
+  size_t numbers_len = strnlen((char *)(passage_input + numbers_start),
+                               PASSAGE_INPUT_BUFF_SIZE - 1);
+  memmove(passage_input, (char *)(passage_input + numbers_start), numbers_len);
+  passage_input[numbers_len] = '\0';
 
   // Getting Passage Information
   sscanf(passage_input, "%d:%d-%d:%d", &passage->beg_chap, &passage->beg_verse,
@@ -151,9 +175,9 @@ bool passage_info_get_from_string(
   // Copying over string so that it no longer belongs to books_arr
   strncpy(passage->book_id, book_id, sizeof(char) * (MAX_BOOK_ID_LEN - 1));
 
-  // printf("%s %d:%d-%d:%d (%s)\n", book_name, passage->beg_chap,
-  //        passage->beg_verse, passage->end_chap, passage->end_verse,
-  //        version->abbr);
+  // printf("Here is the data collected from the string: %s %d:%d-%d:%d (%s)\n",
+  //        book_name, passage->beg_chap, passage->beg_verse, passage->end_chap,
+  //        passage->end_verse, version->abbr);
   return true;
 }
 
