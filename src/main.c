@@ -11,12 +11,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-// TODO: consider adding topics or associated passages together (e.g. Genesis 50:20 and Romans 8:28)
+// TODO: consider adding topics or associated passages together (e.g. Genesis
+// 50:20 and Romans 8:28) --------------
 
 // TODO: add these notable passages to PASSAGES_FILE
 // Exodus 20 + 33
 // Numbers (priestly benediction)
-// Deuteronomy 6:4-6, 8:17-18
+// Deuteronomy 6:4-6, 8:17-18 --------------
 // Judges 17:6, 21:25 (In Comparison with Deuteronomy 12:8)
 // 1 Samuel 16:7 (read around it too)
 // David's Repentance in 1 or 2 Samuel
@@ -142,11 +143,13 @@
 //  14
 //    11
 //    19
+// 1 Corinthians 3 on Testing Through Fire and possible connections to purgatory
+// seeing as purgation is told to be waiting 1 Corinthians 11 on the Eucharist
+// Galatians 6:9-11
 // James 2
 // James 4
 // 1 Peter 3
 // 1 Peter 5
-// 1 Corinthians 11 on the Eucharist
 
 // Old Testing
 // const char *url = "https://bible-api.com/john%203:16-20?translation=kjv";
@@ -208,6 +211,18 @@ int main(void) {
   current_option.exec(&current_option, app_env);
   current_option.data.input_buff[0] = '\0';
 
+  // while (true) {
+  //   char passage_buff[PASSAGE_INPUT_BUFF_SIZE] = "\0";
+  //   input_get("What is your passage?: ", PASSAGE_INPUT_BUFF_SIZE,
+  //   passage_buff); PassageInfo passage; if
+  //   (passage_info_get_from_string(passage_buff, &passage, app_env.curl,
+  //                                    app_env.curl_code,
+  //                                    app_env.bible_version,
+  //                                    app_env.bibles_arr, app_env.books_arr))
+  //                                    {
+  //     printf("Success!\n");
+  //   }
+  // }
   input_print_options_list(current_option.n_sub_options,
                            current_option.sub_options);
   while (true) {

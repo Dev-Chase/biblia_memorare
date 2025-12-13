@@ -54,7 +54,7 @@ BibleVersion bible_version_from_abbreviation(cJSON *bibles_arr,
   // Check if ESV
   if (strcmp(input, ESV_ABBR) == 0) {
     return (BibleVersion){
-        .id = WEB_BIBLE_ID, // NOTE: used for retrieving books
+        .id = WEB_BIBLE_ID, // NOTE: used for retrieving book names
         .language_id = ENGLISH_LANGUAGE_ID,
         .abbr = ESV_ABBR,
         .name = ESV_NAME,

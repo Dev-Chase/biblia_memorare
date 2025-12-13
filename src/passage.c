@@ -54,6 +54,7 @@ void esv_passage_url(PassageInfo passage, char url[URL_BUFF_LEN]) {
   // "&include-heading-horizontal-lines=true"
 }
 
+// NOTE: last_token_start_i must be non-null
 bool passage_get_book_name_from_passage_string(
     const char passage_str[PASSAGE_INPUT_BUFF_SIZE],
     char book_name[MAX_BOOK_NAME_LEN], size_t *last_token_start_i) {
@@ -89,9 +90,15 @@ bool passage_get_book_name_from_passage_string(
             MAX_BOOK_NAME_LEN - strnlen(book_name, MAX_BOOK_NAME_LEN - 1) - 1);
   }
 
-  *last_token_start_i = (token - passage_input_tokenized);
+  if (token == NULL) {
+    *last_token_start_i = 0;
+  } else {
+    *last_token_start_i = (token - passage_input_tokenized);
+  }
+
   return true;
 }
+// TODO: fix problem not getting translation when just inputting book name
 
 // NOTE: passage_str cannot be larger than PASSAGE_INPUT_BUFF_SIZE
 // returns whether passage string was valid
@@ -113,46 +120,55 @@ bool passage_info_get_from_string(
     return false;
   }
 
-  // Offsetting the inputted string so that the book name is no longer included
-  if (passage_input[numbers_start] == '\0') {
-    fprintf(stderr, "No chapter or verse inputted after the book name\n");
-    *passage = (PassageInfo){0};
-    return false;
-  }
-
-  // TODO: verify if overflow (PASSAGE_INPUT_BUFF_SIZE - 1 might be too big)
-  size_t numbers_len = strnlen((char *)(passage_input + numbers_start),
-                               PASSAGE_INPUT_BUFF_SIZE - 1);
-  memmove(passage_input, (char *)(passage_input + numbers_start), numbers_len);
-  passage_input[numbers_len] = '\0';
-
-  // Getting Passage Information
-  sscanf(passage_input, "%d:%d-%d:%d", &passage->beg_chap, &passage->beg_verse,
-         &passage->end_chap, &passage->end_verse);
-  // printf("book_name prior to terminating: %s\n", book_name);
-  unsigned long book_name_len = strlen(book_name);
-  if (book_name[book_name_len - 1] == ' ') {
-    book_name[book_name_len - 1] = '\0';
-  }
-  // printf("book_name: %s\n", book_name);
-
-  // Swapping Variables to Correspond with the Values Inputted
-  if (passage->end_chap != 0 && passage->end_verse == 0) {
-    passage->end_verse = passage->end_chap;
-    passage->end_chap = passage->beg_chap;
-  }
-
-  // Getting Bible Version Abbreviation, if inputted
+  // Bible Abbreviation Variables
+  int n_captured = 0;
   char bible_version_abbr[24];
   char language_id[10];
-  int n_captured = sscanf(passage_input, "%*[^(](%23[^)]) - %9s",
-                          bible_version_abbr, language_id);
+
+  // Analyzing the Rest of the Passage, if Inputted
+  if (numbers_start != 0) {
+    // Offsetting the inputted string so that the book name is no longer
+    // included
+    if (passage_input[numbers_start] == '\0') {
+      fprintf(stderr, "No chapter or verse inputted after the book name\n");
+      *passage = (PassageInfo){0};
+      return false;
+    }
+
+    // TODO: verify if overflow (PASSAGE_INPUT_BUFF_SIZE - 1 might be too big)
+    size_t numbers_len = strnlen((char *)(passage_input + numbers_start),
+                                 PASSAGE_INPUT_BUFF_SIZE - 1);
+    memmove(passage_input, (char *)(passage_input + numbers_start),
+            numbers_len);
+    passage_input[numbers_len] = '\0';
+
+    // Getting Passage Chapter and Verse if Supplied
+    sscanf(passage_input, "%d:%d-%d:%d", &passage->beg_chap,
+           &passage->beg_verse, &passage->end_chap, &passage->end_verse);
+    // printf("book_name prior to terminating: %s\n", book_name);
+    unsigned long book_name_len = strlen(book_name);
+    if (book_name[book_name_len - 1] == ' ') {
+      book_name[book_name_len - 1] = '\0';
+    }
+    // printf("book_name: %s\n", book_name);
+
+    // Swapping Variables to Correspond with the Values Inputted
+    if (passage->end_chap != 0 && passage->end_verse == 0) {
+      passage->end_verse = passage->end_chap;
+      passage->end_chap = passage->beg_chap;
+    }
+
+    // Getting Bible Version Abbreviation, if inputted
+    n_captured = sscanf(passage_input, "%*[^(](%23[^)]) - %9s",
+                        bible_version_abbr, language_id);
+  }
+
   // if (n_captured == 2) {
   //   printf("Language_id: %s\n", language_id);
   // }
   if (n_captured > 0) {
     BibleVersion version_supplied = bible_version_from_abbreviation(
-        bibles_arr, (n_captured == 2) ? language_id : version->language_id,
+        bibles_arr, (n_captured == 2) ? language_id : ENGLISH_LANGUAGE_ID,
         bible_version_abbr);
 
     if (version_supplied.id != NULL) {
@@ -175,9 +191,9 @@ bool passage_info_get_from_string(
   // Copying over string so that it no longer belongs to books_arr
   strncpy(passage->book_id, book_id, sizeof(char) * (MAX_BOOK_ID_LEN - 1));
 
-  // printf("Here is the data collected from the string: %s %d:%d-%d:%d (%s)\n",
-  //        book_name, passage->beg_chap, passage->beg_verse, passage->end_chap,
-  //        passage->end_verse, version->abbr);
+  printf("Here is the data collected from the string: %s %d:%d-%d:%d (%s)\n",
+         book_name, passage->beg_chap, passage->beg_verse, passage->end_chap,
+         passage->end_verse, version->abbr);
   return true;
 }
 
