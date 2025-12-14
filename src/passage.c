@@ -77,7 +77,9 @@ bool passage_get_book_name_from_passage_string(
   // Add first word to book name
   strncat(book_name, token, MAX_BOOK_NAME_LEN - 1);
 
-  while ((token = strtok(NULL, " ")) != NULL && !isdigit(token[0])) {
+  // End when Token is empty or a digit or parenthesis
+  while ((token = strtok(NULL, " ")) != NULL && !isdigit(token[0]) &&
+         token[0] != '(') {
     strncat(book_name, " ",
             MAX_BOOK_NAME_LEN - strnlen(book_name, MAX_BOOK_NAME_LEN - 1) - 1);
 
@@ -98,7 +100,6 @@ bool passage_get_book_name_from_passage_string(
 
   return true;
 }
-// TODO: fix problem not getting translation when just inputting book name
 
 // NOTE: passage_str cannot be larger than PASSAGE_INPUT_BUFF_SIZE
 // returns whether passage string was valid
@@ -136,11 +137,11 @@ bool passage_info_get_from_string(
     }
 
     // TODO: verify if overflow (PASSAGE_INPUT_BUFF_SIZE - 1 might be too big)
-    size_t numbers_len = strnlen((char *)(passage_input + numbers_start),
-                                 PASSAGE_INPUT_BUFF_SIZE - 1);
-    memmove(passage_input, (char *)(passage_input + numbers_start),
-            numbers_len);
-    passage_input[numbers_len] = '\0';
+    size_t rest_size = strnlen((char *)(passage_input + numbers_start),
+                               PASSAGE_INPUT_BUFF_SIZE - 1) *
+                       sizeof(char);
+    memmove(passage_input, (char *)(passage_input + numbers_start), rest_size);
+    passage_input[rest_size] = '\0';
 
     // Getting Passage Chapter and Verse if Supplied
     sscanf(passage_input, "%d:%d-%d:%d", &passage->beg_chap,
@@ -159,14 +160,20 @@ bool passage_info_get_from_string(
     }
 
     // Getting Bible Version Abbreviation, if inputted
-    n_captured = sscanf(passage_input, "%*[^(](%23[^)]) - %9s",
-                        bible_version_abbr, language_id);
+    if (passage_input[0] != '(') {
+      n_captured = sscanf(passage_input, "%*[^(](%23[^)]) - %9s",
+                          bible_version_abbr, language_id);
+    } else {
+      n_captured = sscanf(passage_input, "(%23[^)]) - %9s", bible_version_abbr,
+                          language_id);
+    }
   }
 
   // if (n_captured == 2) {
   //   printf("Language_id: %s\n", language_id);
   // }
   if (n_captured > 0) {
+    printf("Captured Abbreviation: %s\n", bible_version_abbr);
     BibleVersion version_supplied = bible_version_from_abbreviation(
         bibles_arr, (n_captured == 2) ? language_id : ENGLISH_LANGUAGE_ID,
         bible_version_abbr);

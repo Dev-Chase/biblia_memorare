@@ -41,12 +41,14 @@
 //   12:15
 //   (18 or 19)?
 //   26:4-5
+//   26:12
 //   30 (son reference)
 //   31 (end)
 // Ecclesiastes
 //   1:1-2
 //   3:20
 // Isaiah
+//  5:21 (Connection to Prov 3 & Prov 26:12)
 //  40:6-8
 //  53
 // Jonah
@@ -211,18 +213,6 @@ int main(void) {
   current_option.exec(&current_option, app_env);
   current_option.data.input_buff[0] = '\0';
 
-  // while (true) {
-  //   char passage_buff[PASSAGE_INPUT_BUFF_SIZE] = "\0";
-  //   input_get("What is your passage?: ", PASSAGE_INPUT_BUFF_SIZE,
-  //   passage_buff); PassageInfo passage; if
-  //   (passage_info_get_from_string(passage_buff, &passage, app_env.curl,
-  //                                    app_env.curl_code,
-  //                                    app_env.bible_version,
-  //                                    app_env.bibles_arr, app_env.books_arr))
-  //                                    {
-  //     printf("Success!\n");
-  //   }
-  // }
   input_print_options_list(current_option.n_sub_options,
                            current_option.sub_options);
   while (true) {
