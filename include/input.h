@@ -23,6 +23,7 @@ typedef enum InputOptionDataType {
   NoData,
   RetrievedPassageId,
   SavedPassage,
+  SavedPassageList,
   BooksList,
 } InputOptionDataType;
 

@@ -73,6 +73,7 @@ cJSON *passages_array_get(cJSON *passages_json);
 cJSON *passages_get_by_id(cJSON *passages_json, PassageId req_id);
 int passages_get_passage_ind(cJSON *passages_json, cJSON *cmp_passage);
 cJSON *passages_get_random_entry(cJSON *passages_json);
+bool passages_passage_matches_key(cJSON *saved_passage, PassageInfo key);
 
 // JSON Passage Obj Manipulations
 cJSON *passage_obj_create(PassageId id, char *message, char *context);

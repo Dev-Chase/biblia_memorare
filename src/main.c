@@ -11,12 +11,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
 // TODO: consider adding topics or associated passages together (e.g. Genesis
 // 50:20 and Romans 8:28) --------------
 
 // TODO: add these notable passages to PASSAGES_FILE
 // Exodus 20 + 33
-// Numbers (priestly benediction)
+// Numbers 6:24-26
 // Deuteronomy 6:4-6, 8:17-18 --------------
 // Judges 17:6, 21:25 (In Comparison with Deuteronomy 12:8)
 // 1 Samuel 16:7 (read around it too)

@@ -17,6 +17,113 @@ static const InputOption EDIT_SAVED_PASSAGE_OPTION;
 static const InputOption DELETE_SAVED_PASSAGE_OPTION;
 static const InputOption QUIZ_OPTION;
 
+// Directions
+void input_print_options_list(
+    size_t n_sub_options,
+    const InputOption *input_options[static n_sub_options]) {
+  puts("---------------------");
+  puts("Available Options:");
+  printf("info/help/list - List Available Options\n");
+  for (size_t i = 0; i < n_sub_options; i++) {
+    input_options[i]->print_desc();
+  }
+  printf("current - See Current Option\n");
+  printf("clear - Clear console\n");
+  printf("exit - Exit Program\n");
+  puts("---------------------");
+}
+
+// Getting and Processing Input
+// NOTE: does not append ": " to message
+void input_get(const char *message, size_t buff_len, char *input_buff) {
+  printf("%s", message);
+  fflush(stdout);
+  fgets(input_buff, buff_len, stdin);
+
+  // Remove trailing '\n'
+  size_t input_buff_strlen = strnlen(input_buff, buff_len);
+  if (input_buff[input_buff_strlen - 1] == '\n') {
+    input_buff[input_buff_strlen - 1] = '\0';
+  }
+
+  fflush(stdout);
+}
+
+// Handling Input
+// NOTE: only run after new_opt has been executed
+void input_switch_option(InputOption *current_opt, const InputOption *new_opt) {
+  InputOptionData copied_data = current_opt->data;
+  *current_opt = *new_opt;
+  current_opt->data = copied_data;
+}
+
+bool input_info_req_check(char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "info") == 0) ||
+         (strcmp(input_buff, "help") == 0) || (strcmp(input_buff, "list") == 0);
+}
+
+bool current_opt_req_check(char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "current") == 0);
+}
+
+bool clear_req_check(char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "clear") == 0);
+}
+
+bool exit_req_check(char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "exit") == 0);
+}
+
+void input_process(InputOption *current_option, AppEnv env) {
+  // Print Available Options if Requested
+  if (input_info_req_check(current_option->data.input_buff)) {
+    input_print_options_list(current_option->n_sub_options,
+                             current_option->sub_options);
+    return;
+  }
+
+  if (current_opt_req_check(current_option->data.input_buff)) {
+    printf("Your Current Option is:\n");
+    current_option->print_desc();
+    return;
+  }
+
+  if (clear_req_check(current_option->data.input_buff)) {
+    // Clear the Console
+    printf("\033[2J\033[H");
+    return;
+  }
+
+  if (exit_req_check(current_option->data.input_buff)) {
+    puts("Exiting program");
+    exit(EXIT_SUCCESS);
+    return;
+  }
+
+  size_t i = 0;
+  for (; i < current_option->n_sub_options; i++) {
+    if (current_option->sub_options[i]->input_check(
+            current_option->data.input_buff)) {
+      break;
+    }
+  }
+
+  if (i == current_option->n_sub_options) {
+    printf("%s is not a valid option, enter 'info' or 'help' or 'list' to see "
+           "available "
+           "options\n",
+           current_option->data.input_buff);
+    return;
+  }
+
+  const InputOption *selected_option = current_option->sub_options[i];
+
+  // Switch Sub Options if Selected Option Requests it
+  if (selected_option->exec(current_option, env)) {
+    input_switch_option(current_option, selected_option);
+  }
+}
+
 // Input Option Specifics
 // Getting a Passage from the Bible
 void get_passage_option_print_desc(void) {
@@ -204,10 +311,21 @@ void search_saved_passages_option_print_desc(void) {
 
 // TODO: implement getting a list of filtered passages
 bool search_saved_passages_option_fn(InputOption *current_opt, AppEnv env) {
-  char search_key[PASSAGE_INPUT_BUFF_SIZE];
-  input_get("What is your search key?: ", PASSAGE_INPUT_BUFF_SIZE, search_key);
+  PassageInfo search_key_info;
+  passage_info_get_from_input("What is your search key?: ", &search_key_info,
+                              env.curl, env.curl_code, env.bible_version,
+                              env.bibles_arr, env.books_arr);
 
-  return true;
+  cJSON *passages_arr = passages_array_get(env.saved_passages_json);
+  cJSON *passage_obj = NULL;
+  cJSON_ArrayForEach(passage_obj, passages_arr) {
+    if (passages_passage_matches_key(passage_obj, search_key_info)) {
+      cJSON *id = passage_obj_get_field(passage_obj, PassageObjId);
+      printf("Found one with an id of %s!\n", id->valuestring);
+    }
+  }
+
+  return false;
 }
 
 bool search_saved_passages_option_input_check(
@@ -533,9 +651,6 @@ static const InputOption DELETE_SAVED_PASSAGE_OPTION = {
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
     .data = {0}};
 
-// TODO: add option for searching through saved passages (e.g. filtering by
-// book_name or chapter, etc)
-
 // Quiz Option
 // TODO: add quiz option
 //   - include getting a passage's content without getting its reference then
@@ -677,112 +792,3 @@ const InputOption GLOBAL_INPUT_OPTION = {
                                 &RANDOM_SAVED_PASSAGE_OPTION,
                                 &GET_SAVED_PASSAGE_OPTION, &QUIZ_OPTION},
     .data = {0}};
-
-void input_show_options_desc(void) {
-  printf("info/help/list - List Available Options\n");
-}
-
-// Directions
-void input_print_options_list(
-    size_t n_sub_options,
-    const InputOption *input_options[static n_sub_options]) {
-  puts("---------------------");
-  puts("Available Options:");
-  input_show_options_desc();
-  for (size_t i = 0; i < n_sub_options; i++) {
-    input_options[i]->print_desc();
-  }
-  printf("current - See Current Option\n");
-  printf("clear - Clear console\n");
-  printf("exit - Exit Program\n");
-  puts("---------------------");
-}
-
-// Getting and Processing Input
-// NOTE: does not append ": " to message
-void input_get(const char *message, size_t buff_len, char *input_buff) {
-  printf("%s", message);
-  fflush(stdout);
-  fgets(input_buff, buff_len, stdin);
-
-  // Remove trailing '\n'
-  size_t input_buff_strlen = strnlen(input_buff, buff_len);
-  if (input_buff[input_buff_strlen - 1] == '\n') {
-    input_buff[input_buff_strlen - 1] = '\0';
-  }
-
-  fflush(stdout);
-}
-
-// Handling Input
-// NOTE: only run after new_opt has been executed
-void input_switch_option(InputOption *current_opt, const InputOption *new_opt) {
-  InputOptionData copied_data = current_opt->data;
-  *current_opt = *new_opt;
-  current_opt->data = copied_data;
-}
-
-bool input_info_req_check(char input_buff[static INPUT_BUFF_LEN]) {
-  return (strcmp(input_buff, "info") == 0) ||
-         (strcmp(input_buff, "help") == 0) || (strcmp(input_buff, "list") == 0);
-}
-
-bool current_opt_req_check(char input_buff[static INPUT_BUFF_LEN]) {
-  return (strcmp(input_buff, "current") == 0);
-}
-
-bool clear_req_check(char input_buff[static INPUT_BUFF_LEN]) {
-  return (strcmp(input_buff, "clear") == 0);
-}
-
-bool exit_req_check(char input_buff[static INPUT_BUFF_LEN]) {
-  return (strcmp(input_buff, "exit") == 0);
-}
-
-void input_process(InputOption *current_option, AppEnv env) {
-  // Print Available Options if Requested
-  if (input_info_req_check(current_option->data.input_buff)) {
-    input_print_options_list(current_option->n_sub_options,
-                             current_option->sub_options);
-    return;
-  }
-
-  if (current_opt_req_check(current_option->data.input_buff)) {
-    printf("Your Current Option is:\n");
-    current_option->print_desc();
-    return;
-  }
-
-  if (clear_req_check(current_option->data.input_buff)) {
-    // Clear the Console
-    printf("\033[2J\033[H");
-    return;
-  }
-
-  if (exit_req_check(current_option->data.input_buff)) {
-    puts("Exiting program");
-    exit(EXIT_SUCCESS);
-    return;
-  }
-
-  size_t i = 0;
-  for (; i < current_option->n_sub_options; i++) {
-    if (current_option->sub_options[i]->input_check(
-            current_option->data.input_buff)) {
-      break;
-    }
-  }
-
-  if (i == current_option->n_sub_options) {
-    printf("%s is not a valid option, enter 'info' or 'help' or 'list' to see "
-           "available "
-           "options\n",
-           current_option->data.input_buff);
-    return;
-  }
-
-  const InputOption *selected_option = current_option->sub_options[i];
-  if (selected_option->exec(current_option, env)) {
-    input_switch_option(current_option, selected_option);
-  }
-}

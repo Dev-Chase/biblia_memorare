@@ -530,6 +530,34 @@ cJSON *passages_get_random_entry(cJSON *passages_json) {
   return res;
 }
 
+bool passages_passage_matches_key(cJSON *saved_passage, PassageInfo key) {
+  cJSON *id = passage_obj_get_field(saved_passage, PassageObjId);
+  PassageInfo saved_passage_info;
+  passage_get_info_from_id(id->valuestring, &saved_passage_info);
+
+  if (strcmp(key.book_id, saved_passage_info.book_id) != 0) {
+    return false;
+  }
+
+  if (key.beg_chap != 0 && saved_passage_info.beg_chap != key.beg_chap) {
+    return false;
+  }
+
+  if (key.beg_verse != 0 && saved_passage_info.beg_verse != key.beg_verse) {
+    return false;
+  }
+
+  if (key.end_chap != 0 && saved_passage_info.end_chap != key.end_chap) {
+    return false;
+  }
+
+  if (key.end_verse != 0 && saved_passage_info.end_verse != key.end_verse) {
+    return false;
+  }
+
+  return true;
+}
+
 // JSON Passage Obj Manipulations
 cJSON *passage_obj_create(PassageId id, char *message, char *context) {
   cJSON *passage_obj = cJSON_CreateObject();
