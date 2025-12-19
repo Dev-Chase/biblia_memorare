@@ -49,7 +49,77 @@ void input_get(const char *message, size_t buff_len, char *input_buff) {
   fflush(stdout);
 }
 
+void input_opt_print_data(InputOption *current_option) {
+  switch (current_option->data.type) {
+  case NoData:
+    printf("NoData stored\n");
+    break;
+  case RetrievedPassageId:
+    printf("RetrievedPassageId stored with value of %s\n",
+           current_option->data.value.passage_id);
+    break;
+  case SavedPassage:
+    printf("SavedPassage stored with an id of %s and a obj pointer of %p\n",
+           current_option->data.value.passage_id,
+           current_option->data.value.saved_passage_obj);
+    break;
+  case SavedPassageList:
+    printf("SavedPassageList stored with a pointer of %p\n",
+           current_option->data.value.saved_passage_list);
+    break;
+  default:
+    error_if(true, "Current option had invalid data");
+    break;
+  }
+}
+
 // Handling Input
+// NOTE: new_data.input_buff is unused
+void input_opt_set_data(InputOption *current_option, InputOptionData new_data,
+                        bool clean_old_mem) {
+  printf("Before Setting Data:\n");
+  input_opt_print_data(current_option);
+
+  // Free old data if dynamically allocated
+  if (clean_old_mem) {
+    printf("I'm CLEANING!\n");
+    if (current_option->data.type == SavedPassageList) {
+      printf("NOW I'M REALLY CLEANING!\n");
+      free(current_option->data.value.saved_passage_list);
+      current_option->data.value.saved_passage_list = NULL;
+    }
+  }
+
+  // TODO: handle books_list case and maybe consider simply copying all the data
+  // over after managing dynamically allocated stuff instead of handling each
+  // case individually
+  current_option->data.type = new_data.type;
+  switch (current_option->data.type) {
+  case NoData:
+    break;
+  case RetrievedPassageId:
+    memmove(current_option->data.value.passage_id, new_data.value.passage_id,
+            sizeof(PassageId));
+    break;
+  case SavedPassage:
+    memmove(current_option->data.value.passage_id, new_data.value.passage_id,
+            sizeof(PassageId));
+    current_option->data.value.saved_passage_obj =
+        new_data.value.saved_passage_obj;
+    break;
+  case SavedPassageList:
+    current_option->data.value.saved_passage_list =
+        new_data.value.saved_passage_list;
+    break;
+  default:
+    error_if(true, "Invalid data type given to replace current_option");
+    break;
+  }
+
+  printf("After Setting Data:\n");
+  input_opt_print_data(current_option);
+}
+
 // NOTE: only run after new_opt has been executed
 void input_switch_option(InputOption *current_opt, const InputOption *new_opt) {
   InputOptionData copied_data = current_opt->data;
@@ -155,15 +225,20 @@ bool get_passage_option_fn(InputOption *current_opt, AppEnv env) {
 
     // Saving PassageID to current_opt if going to Switch Option
     if (replace_current_opt) {
-      current_opt->data.type = RetrievedPassageId;
-      passage_get_id(passage, current_opt->data.value.passage_id);
+      InputOptionData new_data = {
+          .type = RetrievedPassageId,
+          .value = {0},
+          .input_buff = {0},
+      };
+      passage_get_id(passage, new_data.value.passage_id);
+      input_opt_set_data(current_opt, new_data, true);
     }
 
     cJSON_Delete(passage_data);
     return replace_current_opt;
   }
 
-  current_opt->data.type = NoData;
+  input_opt_set_data(current_opt, (InputOptionData){.type = NoData}, true);
   return false;
 }
 
@@ -181,7 +256,7 @@ static const InputOption GET_PASSAGE_OPTION = {
         (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
                                 &SAVE_PASSAGE_OPTION,
                                 &GET_SAVED_PASSAGE_OPTION},
-    .data = {0}};
+    .data = {.type = NoData}};
 
 // Saving a Passage ID
 void save_passage_option_print_desc(void) {
@@ -189,6 +264,8 @@ void save_passage_option_print_desc(void) {
 }
 
 bool save_passage_option_fn(InputOption *current_opt, AppEnv env) {
+  InputOptionData new_data = {.type = SavedPassage};
+
   // Set current_opt->data.value.passage_id if not just gotten through
   // retrieving a passage
   if (current_opt->data.type != RetrievedPassageId) {
@@ -200,22 +277,21 @@ bool save_passage_option_fn(InputOption *current_opt, AppEnv env) {
       return false;
     }
 
-    passage_get_id(passage, current_opt->data.value.passage_id);
+    passage_get_id(passage, new_data.value.passage_id);
 
-    current_opt->data.type = SavedPassage;
     get_passage_option_fn(current_opt, env);
   }
 
-  passage_save_input(current_opt->data.value.passage_id,
-                     env.saved_passages_json);
+  passage_save_input(new_data.value.passage_id, env.saved_passages_json);
   // NOTE: no error handling is done because the only error that should be
   // present here is a passage already being saved, in which case a
   // SavedPassage can still be set (might have to change if passage_save_input
   // can error in any other meaningful way)
-  current_opt->data.type = SavedPassage;
-  // NOTE: pointer lasts for lifetime of env.saved_passages_json
-  current_opt->data.value.saved_passage_obj = passages_get_by_id(
+
+  new_data.value.saved_passage_obj = passages_get_by_id(
       env.saved_passages_json, current_opt->data.value.passage_id);
+  // NOTE: pointer lasts for lifetime of env.saved_passages_json
+  input_opt_set_data(current_opt, new_data, true);
 
   // Only NULL if it was not saved or is not already saved, which should never
   // happen
@@ -241,7 +317,7 @@ static const InputOption SAVE_PASSAGE_OPTION = {
                                 &SAVED_PASSAGE_INFO_OPTION,
                                 &EDIT_SAVED_PASSAGE_OPTION,
                                 &DELETE_SAVED_PASSAGE_OPTION},
-    .data = {0}};
+    .data = {.type = NoData}};
 
 // Getting a Saved Passage
 void get_saved_passage_option_print_desc(void) {
@@ -276,11 +352,11 @@ bool get_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
   printf("Found ");
   passage_print_reference(passage, *env.books_arr, false);
   printf(" in " PASSAGES_FILE "!\n");
-  current_opt->data.type = SavedPassage;
-  current_opt->data.value.saved_passage_obj = passage_obj;
-  // NOTE: no need for bounds checking since both are of type PassageId (char[]
-  // of the same length) and should be null-terminated
-  strcpy(current_opt->data.value.passage_id, passage_id);
+
+  InputOptionData new_data = {.type = SavedPassage,
+                              .value = {.saved_passage_obj = passage_obj}};
+  strcpy(new_data.value.passage_id, passage_id);
+  input_opt_set_data(current_opt, new_data, true);
 
   return true;
 }
@@ -302,7 +378,7 @@ static const InputOption GET_SAVED_PASSAGE_OPTION = {
             &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
             &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
             &DELETE_SAVED_PASSAGE_OPTION},
-    .data = {0}};
+    .data = {.type = NoData}};
 
 // Searching Through Saved Passages
 void search_saved_passages_option_print_desc(void) {
@@ -347,7 +423,7 @@ static const InputOption SEARCH_SAVED_PASSAGES_OPTION = {
             &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
             &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
             &DELETE_SAVED_PASSAGE_OPTION},
-    .data = {0}};
+    .data = {.type = NoData}};
 
 // Getting a Random Saved Passage
 void random_saved_passage_option_print_desc(void) {
@@ -359,16 +435,18 @@ bool random_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
   // Error Handling already done
 
   printf("Successfully Retrieved a Random Passage\n");
-  current_opt->data.type = SavedPassage;
-  current_opt->data.value.saved_passage_obj = passage_obj;
+  InputOptionData new_data = {.type = SavedPassage,
+                              .value = {.saved_passage_obj = passage_obj}};
 
   // Getting Passage ID
   cJSON *passage_obj_id = passage_obj_get_field(passage_obj, PassageObjId);
 
-  strncpy(current_opt->data.value.passage_id, passage_obj_id->valuestring,
+  strncpy(new_data.value.passage_id, passage_obj_id->valuestring,
           MAX_PASSAGE_ID_LEN - 1);
   // NOTE: bounds checking is done to prevent overflows, but it does not
   // guarantee that the saved passage id is valid
+
+  input_opt_set_data(current_opt, new_data, true);
 
   return true;
 }
@@ -390,7 +468,7 @@ static const InputOption RANDOM_SAVED_PASSAGE_OPTION = {
             &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
             &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
             &DELETE_SAVED_PASSAGE_OPTION},
-    .data = {0}};
+    .data = {.type = NoData}};
 
 // Getting a Saved Passage's Information
 void saved_passage_info_option_print_desc(void) {
@@ -472,7 +550,7 @@ static const InputOption SAVED_PASSAGE_INFO_OPTION = {
     // NOTE: sub_options should not be accessible here anyway
     .n_sub_options = 1,
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
-    .data = {0}};
+    .data = {.type = NoData}};
 
 // Editing a Saved Passage
 void edit_saved_passage_option_print_desc(void) {
@@ -543,8 +621,9 @@ bool edit_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
                               input_buff, cJSON_CreateString(passage_id));
 
     // Changing current_opt passage_id to the new one
-    strncpy(current_opt->data.value.passage_id, passage_id,
-            MAX_PASSAGE_ID_LEN - 1);
+    InputOptionData new_data = current_opt->data;
+    strncpy(new_data.value.passage_id, passage_id, MAX_PASSAGE_ID_LEN - 1);
+    input_opt_set_data(current_opt, new_data, true);
   } else {
     cJSON_ReplaceItemInObject(current_opt->data.value.saved_passage_obj,
                               input_buff, cJSON_CreateString(field_input_buff));
@@ -582,7 +661,7 @@ static const InputOption EDIT_SAVED_PASSAGE_OPTION = {
     // NOTE: sub_options should not be accessible here anyway
     .n_sub_options = 1,
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
-    .data = {0}};
+    .data = {.type = NoData}};
 
 // Deleting a Saved Passage
 void delete_saved_passage_option_print_desc(void) {
@@ -625,9 +704,8 @@ bool delete_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
 
   printf("Succesfully Deleted the Saved Passage from " PASSAGES_FILE "\n");
 
-  // Unsetting the Passage in current_opt->data
-  current_opt->data.type = NoData;
-  current_opt->data.value.saved_passage_obj = NULL;
+  // Clearing current_opt->data
+  input_opt_set_data(current_opt, (InputOptionData){.type = NoData}, true);
 
   // Redirecting Back to Home
   input_switch_option(current_opt, &GLOBAL_INPUT_OPTION);
@@ -649,7 +727,7 @@ static const InputOption DELETE_SAVED_PASSAGE_OPTION = {
     // NOTE: sub_options should not be accessible here anyway
     .n_sub_options = 1,
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
-    .data = {0}};
+    .data = {.type = NoData}};
 
 // Quiz Option
 // TODO: add quiz option
@@ -709,12 +787,14 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
   // Guessing
   for (size_t i = 0; i < n_passages; i++) {
     // Set current_opt passage to random passage at index
-    current_opt->data.type = SavedPassage;
-    current_opt->data.value.saved_passage_obj = random_passages[i];
+    InputOptionData new_data = current_opt->data;
+    new_data.type = SavedPassage;
+    new_data.value.saved_passage_obj = random_passages[i];
     cJSON *random_passage_id =
         passage_obj_get_field(random_passages[i], PassageObjId);
-    strncpy(current_opt->data.value.passage_id, random_passage_id->valuestring,
+    strncpy(new_data.value.passage_id, random_passage_id->valuestring,
             MAX_PASSAGE_ID_LEN - 1);
+    input_opt_set_data(current_opt, new_data, true);
 
     // Show Text
     get_passage_option_fn(current_opt, env);
@@ -763,7 +843,7 @@ static const InputOption QUIZ_OPTION = {
     // NOTE: sub_options should not be accessible here anyway
     .n_sub_options = 1,
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
-    .data = {0}};
+    .data = {.type = NoData}};
 
 // Global/Home Option
 void global_option_print_desc(void) {
@@ -771,7 +851,7 @@ void global_option_print_desc(void) {
 }
 
 bool global_option_fn(InputOption *current_opt, AppEnv _) {
-  current_opt->data.type = NoData;
+  input_opt_set_data(current_opt, (InputOptionData){.type = NoData}, true);
   return true;
 }
 
@@ -791,4 +871,4 @@ const InputOption GLOBAL_INPUT_OPTION = {
                                 &SEARCH_SAVED_PASSAGES_OPTION,
                                 &RANDOM_SAVED_PASSAGE_OPTION,
                                 &GET_SAVED_PASSAGE_OPTION, &QUIZ_OPTION},
-    .data = {0}};
+    .data = {.type = NoData}};

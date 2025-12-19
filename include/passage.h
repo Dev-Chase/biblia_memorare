@@ -23,6 +23,7 @@ typedef enum PassageObjField {
   PassageObjMessage = 1,
   PassageObjContext = 2,
 } PassageObjField;
+// NOTE: the enum numbers must correspond to their index in the array
 static const char *PASSAGE_OBJ_FIELD_KEYS[3] = {"id", "message", "context"};
 
 typedef char ESVPassageQuiery[MAX_ESV_PASSAGE_QUIERY_LEN];

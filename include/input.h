@@ -23,12 +23,13 @@ typedef enum InputOptionDataType {
   NoData,
   RetrievedPassageId,
   SavedPassage,
-  SavedPassageList,
+  SavedPassageList, // Dynamically Allocated
   BooksList,
 } InputOptionDataType;
 
 typedef union InputOptionDataUnion {
   cJSON *books_list;
+  cJSON **saved_passage_list;
   struct {
     PassageId passage_id;
     cJSON *saved_passage_obj;
@@ -48,7 +49,7 @@ typedef struct InputOption {
   OptionInputCheckFn input_check;
   size_t n_sub_options;
   const InputOption **sub_options; // Array of pointers
-  // NOTE: data must be reset if not used in an option
+  // NOTE: data must only be altered through input_opt_switch_data
   InputOptionData data;
 } InputOption;
 
