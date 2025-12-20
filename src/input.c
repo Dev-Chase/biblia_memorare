@@ -823,17 +823,33 @@ void quiz_option_print_desc(void) {
 // TODO: either shuffle around passages provided by the list or make the list
 // not be printed out beforehand
 bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
-  // Since current_opt->data will be altered along the way, keeping a copy here
-  InputOptionData original_data = current_opt->data;
-
   cJSON **quiz_passages = NULL;
   size_t n_passages = 0;
   size_t n_correct = 0;
   bool free_memory = false;
 
-  if (original_data.type == SavedPassageList) {
-    quiz_passages = original_data.value.saved_passage_list;
-    n_passages = original_data.value.saved_passage_list_len;
+  if (current_opt->data.type == SavedPassageList) {
+    // Copying the Passages from the List
+    quiz_passages =
+        (cJSON **)malloc(current_opt->data.value.saved_passage_list_len *
+                         sizeof(current_opt->data.value.saved_passage_list[0]));
+    if (quiz_passages == NULL) {
+      fprintf(stderr, "Failed to allocate memory needed for quiz_passages\n");
+      return false;
+    }
+
+    n_passages = current_opt->data.value.saved_passage_list_len;
+    memcpy(quiz_passages, current_opt->data.value.saved_passage_list,
+           n_passages * sizeof(current_opt->data.value.saved_passage_list[0]));
+
+    // Shuffling the Passages
+    for (size_t i = 0; i < n_passages; i++) {
+      size_t j = (size_t)(rand() % n_passages);
+      cJSON *tmp = quiz_passages[j];
+      quiz_passages[j] = quiz_passages[i];
+      quiz_passages[i] = tmp;
+    }
+
   } else {
     // Getting a Inputted Number of Passages to be Quizzed on
     n_passages = 5; // Defaulting to 5 Passages
@@ -883,20 +899,17 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
 
   // Guessing
   for (size_t i = 0; i < n_passages; i++) {
-    // Set current_opt passage to random passage at index
-    InputOptionData new_data = current_opt->data;
-    new_data.type = SavedPassage;
-    new_data.value.saved_passage_obj = quiz_passages[i];
-    cJSON *random_passage_id =
-        passage_obj_get_field(quiz_passages[i], PassageObjId);
-    strncpy(new_data.value.passage_id, random_passage_id->valuestring,
-            MAX_PASSAGE_ID_LEN - 1);
-    input_opt_set_data(current_opt, new_data,
-                       false); // Do not free data since the data will be
-                               // restored at the end of the quiz
+    PassageInfo passage_info;
+    cJSON *passage_id = passage_obj_get_field(quiz_passages[i], PassageObjId);
+    passage_get_info_from_id(passage_id->valuestring, &passage_info);
 
-    // Show Text
-    get_passage_option_fn(current_opt, env);
+    // Retrieving the Passage and Printing it
+    cJSON *passage_data = passage_get_data(passage_info, env.curl,
+                                           env.curl_code, *env.bible_version);
+    if (passage_data != NULL) {
+      passage_print_text(passage_data, env.bible_version->abbr, false);
+      cJSON_Delete(passage_data);
+    }
 
     // Guess Reference
     PassageInfo guessed_passage;
@@ -909,13 +922,13 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
     passage_get_id(guessed_passage, guessed_passage_id);
 
     // Verify Answer
-    if (strcmp(current_opt->data.value.passage_id, guessed_passage_id) == 0) {
+    if (strncmp(passage_id->valuestring, guessed_passage_id,
+                MAX_PASSAGE_ID_LEN - 1) == 0) {
       puts("You got that one right!");
       n_correct++;
     } else {
       PassageInfo correct_passage;
-      passage_get_info_from_id(current_opt->data.value.passage_id,
-                               &correct_passage);
+      passage_get_info_from_id(passage_id->valuestring, &correct_passage);
 
       printf("Sorry, that was wrong. The correct answer was: ");
       passage_print_reference(correct_passage, *env.books_arr, true);
@@ -928,8 +941,6 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
   if (free_memory) {
     free(quiz_passages);
   }
-
-  input_opt_set_data(current_opt, original_data, true);
 
   return false;
 }
