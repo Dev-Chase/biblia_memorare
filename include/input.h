@@ -29,7 +29,11 @@ typedef enum InputOptionDataType {
 
 typedef union InputOptionDataUnion {
   cJSON *books_list;
-  cJSON **saved_passage_list;
+  struct {
+    cJSON **saved_passage_list;
+    size_t saved_passage_list_len;
+    size_t saved_passage_list_size;
+  };
   struct {
     PassageId passage_id;
     cJSON *saved_passage_obj;

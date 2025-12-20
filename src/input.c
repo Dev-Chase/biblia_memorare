@@ -11,6 +11,7 @@ static const InputOption GET_PASSAGE_OPTION;
 static const InputOption SAVE_PASSAGE_OPTION;
 static const InputOption GET_SAVED_PASSAGE_OPTION;
 static const InputOption SEARCH_SAVED_PASSAGES_OPTION;
+static const InputOption SELECT_PASSAGE_FROM_SAVED_LIST_OPTION;
 static const InputOption RANDOM_SAVED_PASSAGE_OPTION;
 static const InputOption SAVED_PASSAGE_INFO_OPTION;
 static const InputOption EDIT_SAVED_PASSAGE_OPTION;
@@ -49,42 +50,13 @@ void input_get(const char *message, size_t buff_len, char *input_buff) {
   fflush(stdout);
 }
 
-void input_opt_print_data(InputOption *current_option) {
-  switch (current_option->data.type) {
-  case NoData:
-    printf("NoData stored\n");
-    break;
-  case RetrievedPassageId:
-    printf("RetrievedPassageId stored with value of %s\n",
-           current_option->data.value.passage_id);
-    break;
-  case SavedPassage:
-    printf("SavedPassage stored with an id of %s and a obj pointer of %p\n",
-           current_option->data.value.passage_id,
-           current_option->data.value.saved_passage_obj);
-    break;
-  case SavedPassageList:
-    printf("SavedPassageList stored with a pointer of %p\n",
-           current_option->data.value.saved_passage_list);
-    break;
-  default:
-    error_if(true, "Current option had invalid data");
-    break;
-  }
-}
-
 // Handling Input
 // NOTE: new_data.input_buff is unused
 void input_opt_set_data(InputOption *current_option, InputOptionData new_data,
                         bool clean_old_mem) {
-  printf("Before Setting Data:\n");
-  input_opt_print_data(current_option);
-
   // Free old data if dynamically allocated
   if (clean_old_mem) {
-    printf("I'm CLEANING!\n");
     if (current_option->data.type == SavedPassageList) {
-      printf("NOW I'M REALLY CLEANING!\n");
       free(current_option->data.value.saved_passage_list);
       current_option->data.value.saved_passage_list = NULL;
     }
@@ -110,14 +82,15 @@ void input_opt_set_data(InputOption *current_option, InputOptionData new_data,
   case SavedPassageList:
     current_option->data.value.saved_passage_list =
         new_data.value.saved_passage_list;
+    current_option->data.value.saved_passage_list_len =
+        new_data.value.saved_passage_list_len;
+    current_option->data.value.saved_passage_list_size =
+        new_data.value.saved_passage_list_size;
     break;
   default:
     error_if(true, "Invalid data type given to replace current_option");
     break;
   }
-
-  printf("After Setting Data:\n");
-  input_opt_print_data(current_option);
 }
 
 // NOTE: only run after new_opt has been executed
@@ -385,23 +358,48 @@ void search_saved_passages_option_print_desc(void) {
   puts("search/find/search passages - Search through saved passages");
 }
 
-// TODO: implement getting a list of filtered passages
 bool search_saved_passages_option_fn(InputOption *current_opt, AppEnv env) {
   PassageInfo search_key_info;
   passage_info_get_from_input("What is your search key?: ", &search_key_info,
                               env.curl, env.curl_code, env.bible_version,
                               env.bibles_arr, env.books_arr);
 
+  InputOptionData new_data = {.type = SavedPassageList};
+  new_data.value.saved_passage_list_len = 0;
+  new_data.value.saved_passage_list_size = 10;
+  new_data.value.saved_passage_list =
+      (cJSON **)malloc(new_data.value.saved_passage_list_size *
+                       sizeof(new_data.value.saved_passage_list[0]));
+  if (new_data.value.saved_passage_list == NULL) {
+    printf("Failed to allocate memory needed for saved_passage_list");
+    return false;
+  }
+
   cJSON *passages_arr = passages_array_get(env.saved_passages_json);
   cJSON *passage_obj = NULL;
   cJSON_ArrayForEach(passage_obj, passages_arr) {
     if (passages_passage_matches_key(passage_obj, search_key_info)) {
-      cJSON *id = passage_obj_get_field(passage_obj, PassageObjId);
-      printf("Found one with an id of %s!\n", id->valuestring);
+      // Add Object to the List
+      new_data.value.saved_passage_list[new_data.value.saved_passage_list_len] =
+          passage_obj;
+      new_data.value.saved_passage_list_len++;
+
+      // Make list bigger if need be
+      if (new_data.value.saved_passage_list_len >=
+          new_data.value.saved_passage_list_size) {
+        new_data.value.saved_passage_list_size *= 2;
+        new_data.value.saved_passage_list =
+            realloc(new_data.value.saved_passage_list,
+                    new_data.value.saved_passage_list_size *
+                        sizeof(new_data.value.saved_passage_list[0]));
+        error_if(new_data.value.saved_passage_list == NULL,
+                 "Failed to reallocate memory for saved_passage_list");
+      }
     }
   }
 
-  return false;
+  input_opt_set_data(current_opt, new_data, true);
+  return true;
 }
 
 bool search_saved_passages_option_input_check(
@@ -418,11 +416,88 @@ static const InputOption SEARCH_SAVED_PASSAGES_OPTION = {
     .input_check = search_saved_passages_option_input_check,
     .n_sub_options = 7,
     .sub_options =
+        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+                                &GET_SAVED_PASSAGE_OPTION,
+                                &SEARCH_SAVED_PASSAGES_OPTION,
+                                &RANDOM_SAVED_PASSAGE_OPTION, &QUIZ_OPTION,
+                                &SELECT_PASSAGE_FROM_SAVED_LIST_OPTION},
+    .data = {.type = NoData}};
+
+// Selecting a Passage from a Saved Passage List
+void select_passage_from_saved_list_option_print_desc(void) {
+  puts("select/pick - Select a passage from the list");
+}
+
+void saved_passages_list_print(InputOptionData input_opt_data) {
+  for (size_t i = 0; i < input_opt_data.value.saved_passage_list_len; i++) {
+    cJSON *passage_id = passage_obj_get_field(
+        input_opt_data.value.saved_passage_list[i], PassageObjId);
+    printf("%zu - %s \n", i, passage_id->valuestring);
+  }
+}
+
+bool select_passage_from_saved_list_option_fn(InputOption *current_opt,
+                                              AppEnv _) {
+  error_if(current_opt->data.type != SavedPassageList,
+           "Attempted to Get a Saved Passage's information when there is no "
+           "Saved Passage given");
+  error_if(current_opt->data.value.saved_passage_list == NULL,
+           "Attempted to Get Information from a NULL Saved Passage");
+
+  printf("Pick a passage:\n");
+  saved_passages_list_print(current_opt->data);
+  char input_buff[INPUT_BUFF_LEN] = "\0";
+  input_get("Passage Index: ", INPUT_BUFF_LEN, input_buff);
+  long inputted_num = strtol(input_buff, (char **)NULL, 10);
+
+  // Validating Input
+  if (inputted_num < 0) {
+    printf("%s is not a valid index\n", input_buff);
+    return false;
+  }
+
+  if ((size_t)inputted_num >= current_opt->data.value.saved_passage_list_len) {
+    printf("%s (converted %ld) is larger than the list's length\n", input_buff,
+           inputted_num);
+    return false;
+  }
+
+  // Selecting Passage
+  InputOptionData new_data = {.type = SavedPassage};
+  cJSON *selected_passage =
+      current_opt->data.value.saved_passage_list[inputted_num];
+  cJSON *selected_passage_id =
+      passage_obj_get_field(selected_passage, PassageObjId);
+  new_data.value.saved_passage_obj = selected_passage;
+  strncpy(new_data.value.passage_id, selected_passage_id->valuestring,
+          MAX_PASSAGE_ID_LEN - 1);
+  // NOTE: bounds checking is done to prevent overflows, but it does not
+  // guarantee that the saved passage id is valid
+
+  input_opt_set_data(current_opt, new_data, true);
+  printf("Successfully selected %s\n", current_opt->data.value.passage_id);
+
+  return true;
+}
+
+bool select_passage_from_saved_list_option_input_check(
+    char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "select") == 0) ||
+         (strcmp(input_buff, "pick") == 0);
+}
+
+static const InputOption SELECT_PASSAGE_FROM_SAVED_LIST_OPTION = {
+    .exec = select_passage_from_saved_list_option_fn,
+    .print_desc = select_passage_from_saved_list_option_print_desc,
+    .input_check = select_passage_from_saved_list_option_input_check,
+    .n_sub_options = 9,
+    .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
             &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
-            &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
-            &DELETE_SAVED_PASSAGE_OPTION},
+            &SEARCH_SAVED_PASSAGES_OPTION, &SAVED_PASSAGE_INFO_OPTION,
+            &EDIT_SAVED_PASSAGE_OPTION, &DELETE_SAVED_PASSAGE_OPTION,
+            &QUIZ_OPTION},
     .data = {.type = NoData}};
 
 // Getting a Random Saved Passage
@@ -739,62 +814,86 @@ static const InputOption DELETE_SAVED_PASSAGE_OPTION = {
 // TODO: implement several "modes" (e.g. guessing reference, guessing text,
 // guessing meaning, guessing context, guessing book or translation, etc)
 // or difficultly levels
+// (Consider adding being quizzed on passages fitting a key [e.g. on a book or
+// chapter instead of everything])
 void quiz_option_print_desc(void) {
   puts("quiz - Take a quiz on random saved passages");
 }
 
+// TODO: either shuffle around passages provided by the list or make the list
+// not be printed out beforehand
 bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
-  // TODO: implement Selecting Number of Passages (default to 5 if invalid
-  // number given [or maybe quit option])
-  size_t n_passages = 5;
+  // Since current_opt->data will be altered along the way, keeping a copy here
+  InputOptionData original_data = current_opt->data;
+
+  cJSON **quiz_passages = NULL;
+  size_t n_passages = 0;
   size_t n_correct = 0;
+  bool free_memory = false;
 
-  char input_num_buff[INPUT_BUFF_LEN];
-  input_get("How many passages do you want to be quizzed on?: ", INPUT_BUFF_LEN,
-            input_num_buff);
-  long inputted_num = strtol(input_num_buff, (char **)NULL, 10);
-  if (inputted_num > 0) {
-    n_passages = (size_t)inputted_num;
+  if (original_data.type == SavedPassageList) {
+    quiz_passages = original_data.value.saved_passage_list;
+    n_passages = original_data.value.saved_passage_list_len;
   } else {
-    printf("Inputted Number was invalid, defaulting to %zu instead\n",
-           n_passages);
-  }
+    // Getting a Inputted Number of Passages to be Quizzed on
+    n_passages = 5; // Defaulting to 5 Passages
+    char input_num_buff[INPUT_BUFF_LEN];
+    input_get("How many passages do you want to be quizzed on?: ",
+              INPUT_BUFF_LEN, input_num_buff);
+    long inputted_num = strtol(input_num_buff, (char **)NULL, 10);
+    if (inputted_num > 0) {
+      n_passages = (size_t)inputted_num;
+    } else {
+      printf("Inputted Number was invalid, defaulting to %zu instead\n",
+             n_passages);
+    }
 
-  cJSON **random_passages = (cJSON **)malloc(n_passages * sizeof(cJSON *));
+    // Allocate Memory for Random Passages
+    quiz_passages = (cJSON **)malloc(n_passages * sizeof(cJSON *));
+    free_memory = true;
+    if (quiz_passages == NULL) {
+      fprintf(stderr, "Failed to allocate memory needed for quiz_passages\n");
+      return false;
+    }
 
-  // Getting Random Passages
-  puts("Collecting Quiz Passages");
-  for (size_t i = 0; i < n_passages; i++) {
-    cJSON *random_passage = NULL;
-    bool duplicate_passage = false;
+    // Getting Random Passages
+    // TODO: implement handling case where more passages are supplied than are
+    // stored in the PASSAGES_FILE (currently will cause infinite loop)
+    puts("Collecting Quiz Passages");
+    for (size_t i = 0; i < n_passages; i++) {
+      cJSON *random_passage = NULL;
+      bool duplicate_passage = false;
 
-    do {
-      random_passage = passages_get_random_entry(env.saved_passages_json);
-      duplicate_passage = false;
-      for (size_t j = 0; j < i; j++) {
-        if (random_passages[j] == random_passage) {
-          duplicate_passage = true;
-          break;
+      do {
+        random_passage = passages_get_random_entry(env.saved_passages_json);
+        duplicate_passage = false;
+        for (size_t j = 0; j < i; j++) {
+          if (quiz_passages[j] == random_passage) {
+            duplicate_passage = true;
+            break;
+          }
         }
-      }
 
-    } while (duplicate_passage);
+      } while (duplicate_passage);
 
-    random_passages[i] = random_passage;
+      quiz_passages[i] = random_passage;
+    }
+    puts("Successfully Collected Random Quiz Passages!");
   }
-  puts("Successfully Collected all Quiz Passages!");
 
   // Guessing
   for (size_t i = 0; i < n_passages; i++) {
     // Set current_opt passage to random passage at index
     InputOptionData new_data = current_opt->data;
     new_data.type = SavedPassage;
-    new_data.value.saved_passage_obj = random_passages[i];
+    new_data.value.saved_passage_obj = quiz_passages[i];
     cJSON *random_passage_id =
-        passage_obj_get_field(random_passages[i], PassageObjId);
+        passage_obj_get_field(quiz_passages[i], PassageObjId);
     strncpy(new_data.value.passage_id, random_passage_id->valuestring,
             MAX_PASSAGE_ID_LEN - 1);
-    input_opt_set_data(current_opt, new_data, true);
+    input_opt_set_data(current_opt, new_data,
+                       false); // Do not free data since the data will be
+                               // restored at the end of the quiz
 
     // Show Text
     get_passage_option_fn(current_opt, env);
@@ -825,7 +924,12 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
 
   printf("You got %zu/%zu questions right. That's a(n) %.2f%%\n", n_correct,
          n_passages, (((double)(n_correct) / (double)(n_passages)) * 100.0));
-  free(random_passages);
+
+  if (free_memory) {
+    free(quiz_passages);
+  }
+
+  input_opt_set_data(current_opt, original_data, true);
 
   return false;
 }
