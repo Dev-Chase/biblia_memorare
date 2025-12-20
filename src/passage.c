@@ -468,6 +468,33 @@ void passage_print_text(cJSON *passage_data, const char *bible,
   // puts("-------------------------------------------");
 }
 
+bool passage_id_matches_key(PassageId passage_id, PassageInfo key) {
+  PassageInfo saved_passage_info;
+  passage_get_info_from_id(passage_id, &saved_passage_info);
+
+  if (strcmp(key.book_id, saved_passage_info.book_id) != 0) {
+    return false;
+  }
+
+  if (key.beg_chap != 0 && saved_passage_info.beg_chap != key.beg_chap) {
+    return false;
+  }
+
+  if (key.beg_verse != 0 && saved_passage_info.beg_verse != key.beg_verse) {
+    return false;
+  }
+
+  if (key.end_chap != 0 && saved_passage_info.end_chap != key.end_chap) {
+    return false;
+  }
+
+  if (key.end_verse != 0 && saved_passage_info.end_verse != key.end_verse) {
+    return false;
+  }
+
+  return true;
+}
+
 // Saved Passages
 cJSON *passages_array_get(cJSON *passages_json) {
   cJSON *passages_arr =
@@ -532,30 +559,7 @@ cJSON *passages_get_random_entry(cJSON *passages_json) {
 
 bool passages_passage_matches_key(cJSON *saved_passage, PassageInfo key) {
   cJSON *id = passage_obj_get_field(saved_passage, PassageObjId);
-  PassageInfo saved_passage_info;
-  passage_get_info_from_id(id->valuestring, &saved_passage_info);
-
-  if (strcmp(key.book_id, saved_passage_info.book_id) != 0) {
-    return false;
-  }
-
-  if (key.beg_chap != 0 && saved_passage_info.beg_chap != key.beg_chap) {
-    return false;
-  }
-
-  if (key.beg_verse != 0 && saved_passage_info.beg_verse != key.beg_verse) {
-    return false;
-  }
-
-  if (key.end_chap != 0 && saved_passage_info.end_chap != key.end_chap) {
-    return false;
-  }
-
-  if (key.end_verse != 0 && saved_passage_info.end_verse != key.end_verse) {
-    return false;
-  }
-
-  return true;
+  return passage_id_matches_key(id->valuestring, key);
 }
 
 // JSON Passage Obj Manipulations

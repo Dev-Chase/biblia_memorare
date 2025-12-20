@@ -68,6 +68,7 @@ void passage_print_reference(PassageInfo passage, cJSON *books_arr,
                              bool newline);
 void passage_print_text(cJSON *passage_data, const char *bible,
                         bool print_reference);
+bool passage_id_matches_key(PassageId passage_id, PassageInfo key);
 
 // Saved Passages
 cJSON *passages_array_get(cJSON *passages_json);

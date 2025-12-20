@@ -2,6 +2,7 @@
 #include "constants.h"
 #include "global.h"
 #include "passage.h"
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -193,8 +194,7 @@ bool get_passage_option_fn(InputOption *current_opt, AppEnv env) {
       passage_get_data(passage, env.curl, env.curl_code, *env.bible_version);
   if (passage_data != NULL) {
     // Printing Passage Text
-    passage_print_text(passage_data, env.bible_version->abbr,
-                       (current_opt->data.type == SavedPassage) ? false : true);
+    passage_print_text(passage_data, env.bible_version->abbr, true);
 
     // Saving PassageID to current_opt if going to Switch Option
     if (replace_current_opt) {
@@ -224,11 +224,11 @@ static const InputOption GET_PASSAGE_OPTION = {
     .exec = get_passage_option_fn,
     .print_desc = get_passage_option_print_desc,
     .input_check = get_passage_option_input_check,
-    .n_sub_options = 4,
+    .n_sub_options = 5,
     .sub_options =
         (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
-                                &SAVE_PASSAGE_OPTION,
-                                &GET_SAVED_PASSAGE_OPTION},
+                                &SAVE_PASSAGE_OPTION, &GET_SAVED_PASSAGE_OPTION,
+                                &SEARCH_SAVED_PASSAGES_OPTION},
     .data = {.type = NoData}};
 
 // Saving a Passage ID
@@ -344,18 +344,26 @@ static const InputOption GET_SAVED_PASSAGE_OPTION = {
     .exec = get_saved_passage_option_fn,
     .print_desc = get_saved_passage_option_print_desc,
     .input_check = get_saved_passage_option_input_check,
-    .n_sub_options = 7,
+    .n_sub_options = 8,
     .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
             &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
-            &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
-            &DELETE_SAVED_PASSAGE_OPTION},
+            &SEARCH_SAVED_PASSAGES_OPTION, &SAVED_PASSAGE_INFO_OPTION,
+            &EDIT_SAVED_PASSAGE_OPTION, &DELETE_SAVED_PASSAGE_OPTION},
     .data = {.type = NoData}};
 
 // Searching Through Saved Passages
 void search_saved_passages_option_print_desc(void) {
   puts("search/find/search passages - Search through saved passages");
+}
+
+void saved_passages_list_print(InputOptionData input_opt_data) {
+  for (size_t i = 0; i < input_opt_data.value.saved_passage_list_len; i++) {
+    cJSON *passage_id = passage_obj_get_field(
+        input_opt_data.value.saved_passage_list[i], PassageObjId);
+    printf("%zu - %s \n", i, passage_id->valuestring);
+  }
 }
 
 bool search_saved_passages_option_fn(InputOption *current_opt, AppEnv env) {
@@ -398,6 +406,9 @@ bool search_saved_passages_option_fn(InputOption *current_opt, AppEnv env) {
     }
   }
 
+  printf("Passages:\n");
+  saved_passages_list_print(new_data);
+
   input_opt_set_data(current_opt, new_data, true);
   return true;
 }
@@ -426,14 +437,6 @@ static const InputOption SEARCH_SAVED_PASSAGES_OPTION = {
 // Selecting a Passage from a Saved Passage List
 void select_passage_from_saved_list_option_print_desc(void) {
   puts("select/pick - Select a passage from the list");
-}
-
-void saved_passages_list_print(InputOptionData input_opt_data) {
-  for (size_t i = 0; i < input_opt_data.value.saved_passage_list_len; i++) {
-    cJSON *passage_id = passage_obj_get_field(
-        input_opt_data.value.saved_passage_list[i], PassageObjId);
-    printf("%zu - %s \n", i, passage_id->valuestring);
-  }
 }
 
 bool select_passage_from_saved_list_option_fn(InputOption *current_opt,
@@ -820,14 +823,23 @@ void quiz_option_print_desc(void) {
   puts("quiz - Take a quiz on random saved passages");
 }
 
-// TODO: either shuffle around passages provided by the list or make the list
-// not be printed out beforehand
 bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
+  bool strict_comparison = false;
+  char comparison_input[4] = "\0";
+  input_get("Do you want exact comparison (Y/n)?: ", sizeof(comparison_input),
+            comparison_input);
+
+  if (tolower(comparison_input[0]) == 'y') {
+    strict_comparison = true;
+    printf("Okay, I'll be strict.\n");
+  }
+
   cJSON **quiz_passages = NULL;
   size_t n_passages = 0;
   size_t n_correct = 0;
   bool free_memory = false;
 
+  // Either Using Passages from a List or Retrieving Random Ones
   if (current_opt->data.type == SavedPassageList) {
     // Copying the Passages from the List
     quiz_passages =
@@ -922,8 +934,17 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
     passage_get_id(guessed_passage, guessed_passage_id);
 
     // Verify Answer
-    if (strncmp(passage_id->valuestring, guessed_passage_id,
-                MAX_PASSAGE_ID_LEN - 1) == 0) {
+    bool correct = false;
+    if (strict_comparison) {
+      correct = (strncmp(passage_id->valuestring, guessed_passage_id,
+                        MAX_PASSAGE_ID_LEN - 1) == 0);
+    } else {
+      PassageInfo guessed_key;
+      passage_get_info_from_id(guessed_passage_id, &guessed_key);
+      correct = passage_id_matches_key(passage_id->valuestring, guessed_key);
+    }
+
+    if (correct) {
       puts("You got that one right!");
       n_correct++;
     } else {
