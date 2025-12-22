@@ -10,6 +10,8 @@ extern "C" {
 #endif
 
 #define BIBLES_URL "https://api.scripture.api.bible/v1/bibles"
+#define BIBLE_ABBR_BUFF_SIZE 24
+#define LANGUAGE_ID_BUFF_SIZE 10
 
 typedef struct BibleVersion {
   const char *id;
@@ -31,6 +33,7 @@ cJSON *get_bible_versions(CURL *curl, CURLcode *result_code);
 BibleVersion bible_version_from_abbreviation(cJSON *bibles_arr,
                                              const char *language_id,
                                              char *input);
+void bible_version_set_from_abbreviation(CURL *curl, CURLcode *result_code, cJSON *bibles_arr, cJSON **books_arr, const char *language_id, char *abbr, BibleVersion *version);
 
 #ifdef _cplusplus
 }

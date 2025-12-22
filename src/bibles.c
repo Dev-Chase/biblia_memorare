@@ -1,4 +1,5 @@
 #include "bibles.h"
+#include "books.h"
 #include "constants.h"
 #include "curl_handle.h"
 #include "global.h"
@@ -109,4 +110,22 @@ BibleVersion bible_version_from_abbreviation(cJSON *bibles_arr,
   } */
 
   return res;
+}
+
+void bible_version_set_from_abbreviation(CURL *curl, CURLcode *result_code,
+                                         cJSON *bibles_arr, cJSON **books_arr,
+                                         const char *language_id, char *abbr,
+                                         BibleVersion *version) {
+  BibleVersion version_supplied =
+      bible_version_from_abbreviation(bibles_arr, language_id, abbr);
+
+  if (version_supplied.id != NULL) {
+    *version = version_supplied;
+    cJSON_Delete(*books_arr);
+    *books_arr =
+        books_get_from_bible_version(curl, result_code, version_supplied.id);
+    error_if(*books_arr == NULL, "failed to parse json");
+  }
+
+  printf("Version set to %s - %s\n", abbr, version->language_id);
 }

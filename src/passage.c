@@ -123,8 +123,8 @@ bool passage_info_get_from_string(
 
   // Bible Abbreviation Variables
   int n_captured = 0;
-  char bible_version_abbr[24];
-  char language_id[10];
+  char bible_version_abbr[BIBLE_ABBR_BUFF_SIZE];
+  char language_id[LANGUAGE_ID_BUFF_SIZE];
 
   // Analyzing the Rest of the Passage, if Inputted
   if (numbers_start != 0) {
@@ -174,17 +174,10 @@ bool passage_info_get_from_string(
   // }
   if (n_captured > 0) {
     printf("Captured Abbreviation: %s\n", bible_version_abbr);
-    BibleVersion version_supplied = bible_version_from_abbreviation(
-        bibles_arr, (n_captured == 2) ? language_id : ENGLISH_LANGUAGE_ID,
-        bible_version_abbr);
-
-    if (version_supplied.id != NULL) {
-      *version = version_supplied;
-      cJSON_Delete(*books_arr);
-      *books_arr =
-          books_get_from_bible_version(curl, result_code, version_supplied.id);
-      error_if(*books_arr == NULL, "failed to parse json");
-    }
+    bible_version_set_from_abbreviation(
+        curl, result_code, bibles_arr, books_arr,
+        (n_captured == 2) ? language_id : ENGLISH_LANGUAGE_ID,
+        bible_version_abbr, version);
   }
 
   // Getting Book Abbreviation from Name

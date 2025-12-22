@@ -18,6 +18,7 @@ static const InputOption SAVED_PASSAGE_INFO_OPTION;
 static const InputOption EDIT_SAVED_PASSAGE_OPTION;
 static const InputOption DELETE_SAVED_PASSAGE_OPTION;
 static const InputOption QUIZ_OPTION;
+static const InputOption SET_BIBLE_VERSION_OPTION;
 
 // Directions
 void input_print_options_list(
@@ -29,7 +30,7 @@ void input_print_options_list(
   for (size_t i = 0; i < n_sub_options; i++) {
     input_options[i]->print_desc();
   }
-  printf("current - See Current Option\n");
+  printf("current - See Current Information\n");
   printf("clear - Clear console\n");
   printf("exit - Exit Program\n");
   puts("---------------------");
@@ -129,6 +130,8 @@ void input_process(InputOption *current_option, AppEnv env) {
   if (current_opt_req_check(current_option->data.input_buff)) {
     printf("Your Current Option is:\n");
     current_option->print_desc();
+    printf("You are currently using the %s translation in %s\n",
+           env.bible_version->abbr, env.bible_version->language_id);
     return;
   }
 
@@ -224,11 +227,12 @@ static const InputOption GET_PASSAGE_OPTION = {
     .exec = get_passage_option_fn,
     .print_desc = get_passage_option_print_desc,
     .input_check = get_passage_option_input_check,
-    .n_sub_options = 5,
+    .n_sub_options = 6,
     .sub_options =
         (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
                                 &SAVE_PASSAGE_OPTION, &GET_SAVED_PASSAGE_OPTION,
-                                &SEARCH_SAVED_PASSAGES_OPTION},
+                                &SEARCH_SAVED_PASSAGES_OPTION,
+                                &SET_BIBLE_VERSION_OPTION},
     .data = {.type = NoData}};
 
 // Saving a Passage ID
@@ -237,7 +241,8 @@ void save_passage_option_print_desc(void) {
 }
 
 bool save_passage_option_fn(InputOption *current_opt, AppEnv env) {
-  InputOptionData new_data = {.type = SavedPassage};
+  InputOptionData new_data = current_opt->data;
+  new_data.type = SavedPassage;
 
   // Set current_opt->data.value.passage_id if not just gotten through
   // retrieving a passage
@@ -284,12 +289,13 @@ static const InputOption SAVE_PASSAGE_OPTION = {
     .exec = save_passage_option_fn,
     .print_desc = save_passage_option_print_desc,
     .input_check = save_passage_option_input_check,
-    .n_sub_options = 5,
+    .n_sub_options = 7,
     .sub_options =
-        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
-                                &SAVED_PASSAGE_INFO_OPTION,
-                                &EDIT_SAVED_PASSAGE_OPTION,
-                                &DELETE_SAVED_PASSAGE_OPTION},
+        (const InputOption *[]){
+            &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+            &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
+            &DELETE_SAVED_PASSAGE_OPTION, &SEARCH_SAVED_PASSAGES_OPTION,
+            &SET_BIBLE_VERSION_OPTION},
     .data = {.type = NoData}};
 
 // Getting a Saved Passage
@@ -344,13 +350,14 @@ static const InputOption GET_SAVED_PASSAGE_OPTION = {
     .exec = get_saved_passage_option_fn,
     .print_desc = get_saved_passage_option_print_desc,
     .input_check = get_saved_passage_option_input_check,
-    .n_sub_options = 8,
+    .n_sub_options = 9,
     .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
             &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
             &SEARCH_SAVED_PASSAGES_OPTION, &SAVED_PASSAGE_INFO_OPTION,
-            &EDIT_SAVED_PASSAGE_OPTION, &DELETE_SAVED_PASSAGE_OPTION},
+            &EDIT_SAVED_PASSAGE_OPTION, &DELETE_SAVED_PASSAGE_OPTION,
+            &SET_BIBLE_VERSION_OPTION},
     .data = {.type = NoData}};
 
 // Searching Through Saved Passages
@@ -425,13 +432,13 @@ static const InputOption SEARCH_SAVED_PASSAGES_OPTION = {
     .exec = search_saved_passages_option_fn,
     .print_desc = search_saved_passages_option_print_desc,
     .input_check = search_saved_passages_option_input_check,
-    .n_sub_options = 7,
+    .n_sub_options = 8,
     .sub_options =
-        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
-                                &GET_SAVED_PASSAGE_OPTION,
-                                &SEARCH_SAVED_PASSAGES_OPTION,
-                                &RANDOM_SAVED_PASSAGE_OPTION, &QUIZ_OPTION,
-                                &SELECT_PASSAGE_FROM_SAVED_LIST_OPTION},
+        (const InputOption *[]){
+            &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
+            &GET_SAVED_PASSAGE_OPTION, &SEARCH_SAVED_PASSAGES_OPTION,
+            &RANDOM_SAVED_PASSAGE_OPTION, &QUIZ_OPTION,
+            &SELECT_PASSAGE_FROM_SAVED_LIST_OPTION, &SET_BIBLE_VERSION_OPTION},
     .data = {.type = NoData}};
 
 // Selecting a Passage from a Saved Passage List
@@ -493,14 +500,14 @@ static const InputOption SELECT_PASSAGE_FROM_SAVED_LIST_OPTION = {
     .exec = select_passage_from_saved_list_option_fn,
     .print_desc = select_passage_from_saved_list_option_print_desc,
     .input_check = select_passage_from_saved_list_option_input_check,
-    .n_sub_options = 9,
+    .n_sub_options = 10,
     .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
             &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
             &SEARCH_SAVED_PASSAGES_OPTION, &SAVED_PASSAGE_INFO_OPTION,
             &EDIT_SAVED_PASSAGE_OPTION, &DELETE_SAVED_PASSAGE_OPTION,
-            &QUIZ_OPTION},
+            &QUIZ_OPTION, &SET_BIBLE_VERSION_OPTION},
     .data = {.type = NoData}};
 
 // Getting a Random Saved Passage
@@ -539,13 +546,13 @@ static const InputOption RANDOM_SAVED_PASSAGE_OPTION = {
     .exec = random_saved_passage_option_fn,
     .print_desc = random_saved_passage_option_print_desc,
     .input_check = random_saved_passage_option_input_check,
-    .n_sub_options = 7,
+    .n_sub_options = 8,
     .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
             &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
             &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
-            &DELETE_SAVED_PASSAGE_OPTION},
+            &DELETE_SAVED_PASSAGE_OPTION, &SET_BIBLE_VERSION_OPTION},
     .data = {.type = NoData}};
 
 // Getting a Saved Passage's Information
@@ -937,7 +944,7 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
     bool correct = false;
     if (strict_comparison) {
       correct = (strncmp(passage_id->valuestring, guessed_passage_id,
-                        MAX_PASSAGE_ID_LEN - 1) == 0);
+                         MAX_PASSAGE_ID_LEN - 1) == 0);
     } else {
       PassageInfo guessed_key;
       passage_get_info_from_id(guessed_passage_id, &guessed_key);
@@ -981,6 +988,46 @@ static const InputOption QUIZ_OPTION = {
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
     .data = {.type = NoData}};
 
+// Setting a Bible Version
+void set_bible_version_print_desc(void) {
+  puts("version/transl(ation) - Change the Selected Bible Version/Translation");
+}
+
+bool set_bible_version_fn(InputOption *_, AppEnv env) {
+  char input_buff[INPUT_BUFF_LEN] = "\0";
+  input_get(
+      "What translation/version would you like to use (abbr - language)?: ",
+      INPUT_BUFF_LEN, input_buff);
+
+  char bible_version_abbr[BIBLE_ABBR_BUFF_SIZE];
+  char language_id[LANGUAGE_ID_BUFF_SIZE];
+  int n_captured =
+      sscanf(input_buff, "%23s - %9s", bible_version_abbr, language_id);
+
+  bible_version_set_from_abbreviation(
+      env.curl, env.curl_code, env.bibles_arr, env.books_arr,
+      (n_captured == 2) ? language_id : ENGLISH_LANGUAGE_ID, bible_version_abbr,
+      env.bible_version);
+
+  return false;
+}
+
+bool set_bible_version_input_check(char input_buff[static INPUT_BUFF_LEN]) {
+  return (strcmp(input_buff, "version") == 0) ||
+         (strcmp(input_buff, "translation") == 0) ||
+         (strcmp(input_buff, "transl") == 0);
+}
+
+// TODO: make sub-option to more options
+static const InputOption SET_BIBLE_VERSION_OPTION = {
+    .exec = set_bible_version_fn,
+    .print_desc = set_bible_version_print_desc,
+    .input_check = set_bible_version_input_check,
+    // NOTE: sub_options should not be accessible here anyway
+    .n_sub_options = 1,
+    .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
+    .data = {.type = NoData}};
+
 // Global/Home Option
 void global_option_print_desc(void) {
   puts("root/global/home - Go back to application home");
@@ -1001,10 +1048,10 @@ const InputOption GLOBAL_INPUT_OPTION = {
     .exec = global_option_fn,
     .print_desc = global_option_print_desc,
     .input_check = global_option_input_check,
-    .n_sub_options = 6,
+    .n_sub_options = 7,
     .sub_options =
-        (const InputOption *[]){&GET_PASSAGE_OPTION, &SAVE_PASSAGE_OPTION,
-                                &SEARCH_SAVED_PASSAGES_OPTION,
-                                &RANDOM_SAVED_PASSAGE_OPTION,
-                                &GET_SAVED_PASSAGE_OPTION, &QUIZ_OPTION},
+        (const InputOption *[]){
+            &GET_PASSAGE_OPTION, &SAVE_PASSAGE_OPTION,
+            &SEARCH_SAVED_PASSAGES_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
+            &GET_SAVED_PASSAGE_OPTION, &QUIZ_OPTION, &SET_BIBLE_VERSION_OPTION},
     .data = {.type = NoData}};
