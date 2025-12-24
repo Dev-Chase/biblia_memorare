@@ -32,7 +32,7 @@ cJSON *get_bible_versions(CURL *curl, CURLcode *result_code);
 // catholic, orthodox, ecumenical, etc)
 BibleVersion bible_version_from_abbreviation(cJSON *bibles_arr,
                                              const char *language_id,
-                                             char *input);
+                                             char *abbr_input);
 void bible_version_set_from_abbreviation(CURL *curl, CURLcode *result_code, cJSON *bibles_arr, cJSON **books_arr, const char *language_id, char *abbr, BibleVersion *version);
 
 #ifdef _cplusplus

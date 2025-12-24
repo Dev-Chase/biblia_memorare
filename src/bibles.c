@@ -3,6 +3,7 @@
 #include "constants.h"
 #include "curl_handle.h"
 #include "global.h"
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -51,9 +52,16 @@ cJSON *get_bible_versions(CURL *curl, CURLcode *result_code) {
 // pointers in returned struct belong to bibles_arr unless it is the ESV
 BibleVersion bible_version_from_abbreviation(cJSON *bibles_arr,
                                              const char *language_id,
-                                             char *input) {
+                                             char *abbr_input) {
+  // Capitalize Abbreviation
+  size_t abbr_len = strnlen(abbr_input, BIBLE_ABBR_BUFF_SIZE - 1);
+  char capitalized_abbr[BIBLE_ABBR_BUFF_SIZE] = "";
+  for (size_t i = 0; i < abbr_len; i++) {
+    capitalized_abbr[i] = toupper(abbr_input[i]);
+  }
+
   // Check if ESV
-  if (strcmp(input, ESV_ABBR) == 0) {
+  if (strcmp(capitalized_abbr, ESV_ABBR) == 0) {
     return (BibleVersion){
         .id = WEB_BIBLE_ID, // NOTE: used for retrieving book names
         .language_id = ENGLISH_LANGUAGE_ID,
@@ -83,8 +91,8 @@ BibleVersion bible_version_from_abbreviation(cJSON *bibles_arr,
                  json_language_id->valuestring == NULL ||
                  id->valuestring == NULL,
              "invalid strings in bibles_arr");
-    if (strcmp(abbr->valuestring, input) == 0 ||
-        strcmp(abbr_local->valuestring, input) == 0) {
+    if (strcmp(abbr->valuestring, capitalized_abbr) == 0 ||
+        strcmp(abbr_local->valuestring, capitalized_abbr) == 0) {
       res = (BibleVersion){
           .id = id->valuestring,
           .language_id = json_language_id->valuestring,
@@ -100,7 +108,7 @@ BibleVersion bible_version_from_abbreviation(cJSON *bibles_arr,
   }
 
   if (res.id == NULL) {
-    printf("Couldn't find %s (in %s or otherwise) in bibles\n", input,
+    printf("Couldn't find %s (in %s or otherwise) in bibles\n", abbr_input,
            language_id);
   } /* else {
     printf(
@@ -122,8 +130,8 @@ void bible_version_set_from_abbreviation(CURL *curl, CURLcode *result_code,
   if (version_supplied.id != NULL) {
     *version = version_supplied;
     cJSON_Delete(*books_arr);
-    *books_arr =
-        books_get_from_bible_version(curl, result_code, version_supplied.id);
+    *books_arr = books_get_from_bible_version(curl, result_code,
+                                              version_supplied.id, true);
     error_if(*books_arr == NULL, "failed to parse json");
   }
 

@@ -179,7 +179,7 @@ int main(void) {
   error_if(bible_version.id == NULL, "default bible ( " DEFAULT_BIBLE_ABBR
                                      " ) is not present in " BIBLES_FILE);
   cJSON *books_arr =
-      books_get_from_bible_version(curl, &curl_res, bible_version.id);
+      books_get_from_bible_version(curl, &curl_res, bible_version.id, true);
   cJSON *passages_json = passages_get_json();
 
   // Creating Application Environment

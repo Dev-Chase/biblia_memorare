@@ -19,6 +19,7 @@ static const InputOption EDIT_SAVED_PASSAGE_OPTION;
 static const InputOption DELETE_SAVED_PASSAGE_OPTION;
 static const InputOption QUIZ_OPTION;
 static const InputOption SET_BIBLE_VERSION_OPTION;
+static const InputOption GET_VERSION_BOOKS_OPTION;
 
 // Directions
 void input_print_options_list(
@@ -227,12 +228,12 @@ static const InputOption GET_PASSAGE_OPTION = {
     .exec = get_passage_option_fn,
     .print_desc = get_passage_option_print_desc,
     .input_check = get_passage_option_input_check,
-    .n_sub_options = 6,
+    .n_sub_options = 7,
     .sub_options =
-        (const InputOption *[]){&GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
-                                &SAVE_PASSAGE_OPTION, &GET_SAVED_PASSAGE_OPTION,
-                                &SEARCH_SAVED_PASSAGES_OPTION,
-                                &SET_BIBLE_VERSION_OPTION},
+        (const InputOption *[]){
+            &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION, &SAVE_PASSAGE_OPTION,
+            &GET_SAVED_PASSAGE_OPTION, &SEARCH_SAVED_PASSAGES_OPTION,
+            &SET_BIBLE_VERSION_OPTION, &GET_VERSION_BOOKS_OPTION},
     .data = {.type = NoData}};
 
 // Saving a Passage ID
@@ -289,13 +290,13 @@ static const InputOption SAVE_PASSAGE_OPTION = {
     .exec = save_passage_option_fn,
     .print_desc = save_passage_option_print_desc,
     .input_check = save_passage_option_input_check,
-    .n_sub_options = 7,
+    .n_sub_options = 8,
     .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
             &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
             &DELETE_SAVED_PASSAGE_OPTION, &SEARCH_SAVED_PASSAGES_OPTION,
-            &SET_BIBLE_VERSION_OPTION},
+            &SET_BIBLE_VERSION_OPTION, &GET_VERSION_BOOKS_OPTION},
     .data = {.type = NoData}};
 
 // Getting a Saved Passage
@@ -350,14 +351,14 @@ static const InputOption GET_SAVED_PASSAGE_OPTION = {
     .exec = get_saved_passage_option_fn,
     .print_desc = get_saved_passage_option_print_desc,
     .input_check = get_saved_passage_option_input_check,
-    .n_sub_options = 9,
+    .n_sub_options = 10,
     .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
             &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
             &SEARCH_SAVED_PASSAGES_OPTION, &SAVED_PASSAGE_INFO_OPTION,
             &EDIT_SAVED_PASSAGE_OPTION, &DELETE_SAVED_PASSAGE_OPTION,
-            &SET_BIBLE_VERSION_OPTION},
+            &SET_BIBLE_VERSION_OPTION, &GET_VERSION_BOOKS_OPTION},
     .data = {.type = NoData}};
 
 // Searching Through Saved Passages
@@ -432,13 +433,14 @@ static const InputOption SEARCH_SAVED_PASSAGES_OPTION = {
     .exec = search_saved_passages_option_fn,
     .print_desc = search_saved_passages_option_print_desc,
     .input_check = search_saved_passages_option_input_check,
-    .n_sub_options = 8,
+    .n_sub_options = 9,
     .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
             &GET_SAVED_PASSAGE_OPTION, &SEARCH_SAVED_PASSAGES_OPTION,
             &RANDOM_SAVED_PASSAGE_OPTION, &QUIZ_OPTION,
-            &SELECT_PASSAGE_FROM_SAVED_LIST_OPTION, &SET_BIBLE_VERSION_OPTION},
+            &SELECT_PASSAGE_FROM_SAVED_LIST_OPTION, &SET_BIBLE_VERSION_OPTION,
+            &GET_VERSION_BOOKS_OPTION},
     .data = {.type = NoData}};
 
 // Selecting a Passage from a Saved Passage List
@@ -500,14 +502,14 @@ static const InputOption SELECT_PASSAGE_FROM_SAVED_LIST_OPTION = {
     .exec = select_passage_from_saved_list_option_fn,
     .print_desc = select_passage_from_saved_list_option_print_desc,
     .input_check = select_passage_from_saved_list_option_input_check,
-    .n_sub_options = 10,
+    .n_sub_options = 11,
     .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
             &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
             &SEARCH_SAVED_PASSAGES_OPTION, &SAVED_PASSAGE_INFO_OPTION,
             &EDIT_SAVED_PASSAGE_OPTION, &DELETE_SAVED_PASSAGE_OPTION,
-            &QUIZ_OPTION, &SET_BIBLE_VERSION_OPTION},
+            &QUIZ_OPTION, &SET_BIBLE_VERSION_OPTION, &GET_VERSION_BOOKS_OPTION},
     .data = {.type = NoData}};
 
 // Getting a Random Saved Passage
@@ -546,13 +548,14 @@ static const InputOption RANDOM_SAVED_PASSAGE_OPTION = {
     .exec = random_saved_passage_option_fn,
     .print_desc = random_saved_passage_option_print_desc,
     .input_check = random_saved_passage_option_input_check,
-    .n_sub_options = 8,
+    .n_sub_options = 9,
     .sub_options =
         (const InputOption *[]){
             &GLOBAL_INPUT_OPTION, &GET_PASSAGE_OPTION,
             &GET_SAVED_PASSAGE_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
             &SAVED_PASSAGE_INFO_OPTION, &EDIT_SAVED_PASSAGE_OPTION,
-            &DELETE_SAVED_PASSAGE_OPTION, &SET_BIBLE_VERSION_OPTION},
+            &DELETE_SAVED_PASSAGE_OPTION, &SET_BIBLE_VERSION_OPTION,
+            &GET_VERSION_BOOKS_OPTION},
     .data = {.type = NoData}};
 
 // Getting a Saved Passage's Information
@@ -574,7 +577,7 @@ bool saved_passage_info_option_fn(InputOption *current_opt, AppEnv env) {
           0 &&
       current_opt->data.input_buff[input_start_len] == ' ') {
     strncpy(input_buff, &current_opt->data.input_buff[input_start_len + 1],
-            INPUT_BUFF_LEN - 1);
+            INPUT_BUFF_LEN - 1 - input_start_len);
   } else {
     input_get("What field would you like to see (id/name, content, message, or "
               "context)?: ",
@@ -657,7 +660,7 @@ bool edit_saved_passage_option_fn(InputOption *current_opt, AppEnv env) {
           0 &&
       current_opt->data.input_buff[input_start_len] == ' ') {
     strncpy(input_buff, &current_opt->data.input_buff[input_start_len + 1],
-            INPUT_BUFF_LEN - 1);
+            INPUT_BUFF_LEN - 1 - input_start_len);
   } else {
     input_get("What field would you like to edit (id, message, or context): ",
               INPUT_BUFF_LEN, input_buff);
@@ -990,7 +993,8 @@ static const InputOption QUIZ_OPTION = {
 
 // Setting a Bible Version
 void set_bible_version_print_desc(void) {
-  puts("version/transl(ation) - Change the Selected Bible Version/Translation");
+  puts("set/version/transl(ation) - Change the Selected Bible "
+       "Version/Translation");
 }
 
 bool set_bible_version_fn(InputOption *_, AppEnv env) {
@@ -1013,16 +1017,83 @@ bool set_bible_version_fn(InputOption *_, AppEnv env) {
 }
 
 bool set_bible_version_input_check(char input_buff[static INPUT_BUFF_LEN]) {
-  return (strcmp(input_buff, "version") == 0) ||
+  return (strcmp(input_buff, "set") == 0) ||
+         (strcmp(input_buff, "version") == 0) ||
          (strcmp(input_buff, "translation") == 0) ||
          (strcmp(input_buff, "transl") == 0);
 }
 
-// TODO: make sub-option to more options
 static const InputOption SET_BIBLE_VERSION_OPTION = {
     .exec = set_bible_version_fn,
     .print_desc = set_bible_version_print_desc,
     .input_check = set_bible_version_input_check,
+    // NOTE: sub_options should not be accessible here anyway
+    .n_sub_options = 1,
+    .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
+    .data = {.type = NoData}};
+
+// Getting a List of the Books in a Specified Version
+void get_version_books_option_print_desc(void) {
+  puts("books (abbr - language) - Get the List of Books in the Current Version "
+       "or in a "
+       "Supplied One");
+}
+
+bool get_version_books_option_fn(InputOption *current_opt, AppEnv env) {
+  BibleVersion version = {0};
+
+  char input_buff[INPUT_BUFF_LEN] = "\0";
+  const char *input_start = "books";
+  size_t input_start_len = strlen(input_start);
+  if (strncmp(current_opt->data.input_buff, input_start, input_start_len) ==
+          0 &&
+      current_opt->data.input_buff[input_start_len] == ' ') {
+    strncpy(input_buff, &current_opt->data.input_buff[input_start_len + 1],
+            INPUT_BUFF_LEN - 1 - input_start_len);
+
+    char bible_version_abbr[BIBLE_ABBR_BUFF_SIZE];
+    char language_id[LANGUAGE_ID_BUFF_SIZE];
+    int n_captured =
+        sscanf(input_buff, "%23s - %9s", bible_version_abbr, language_id);
+    version = bible_version_from_abbreviation(
+        env.bibles_arr, (n_captured == 2) ? language_id : ENGLISH_LANGUAGE_ID,
+        bible_version_abbr);
+  }
+
+  // Handles the case where supplied version is invalid
+  if (version.id == NULL) {
+    version = *env.bible_version;
+  }
+
+  // Print the Books List
+  cJSON *version_books =
+      books_get_from_bible_version(env.curl, env.curl_code, version.id, false);
+  cJSON *item = NULL;
+  int i = 1;
+  cJSON_ArrayForEach(item, version_books) {
+    cJSON *name = cJSON_GetObjectItemCaseSensitive(item, "name");
+    cJSON *id = cJSON_GetObjectItemCaseSensitive(item, "id");
+    error_if(!cJSON_IsString(name) || !cJSON_IsString(id),
+             "books_arr is not in proper format");
+    error_if(name->valuestring == NULL || id->valuestring == NULL,
+             "missing string in books_arr");
+
+    printf("%d. %s - %s\n", i, id->valuestring, name->valuestring);
+    i++;
+  }
+
+  return false;
+}
+
+bool get_version_books_option_input_check(
+    char input_buff[static INPUT_BUFF_LEN]) {
+  return (strncmp(input_buff, "books", strlen("books")) == 0);
+}
+
+static const InputOption GET_VERSION_BOOKS_OPTION = {
+    .exec = get_version_books_option_fn,
+    .print_desc = get_version_books_option_print_desc,
+    .input_check = get_version_books_option_input_check,
     // NOTE: sub_options should not be accessible here anyway
     .n_sub_options = 1,
     .sub_options = (const InputOption *[]){&GLOBAL_INPUT_OPTION},
@@ -1048,10 +1119,11 @@ const InputOption GLOBAL_INPUT_OPTION = {
     .exec = global_option_fn,
     .print_desc = global_option_print_desc,
     .input_check = global_option_input_check,
-    .n_sub_options = 7,
+    .n_sub_options = 8,
     .sub_options =
         (const InputOption *[]){
             &GET_PASSAGE_OPTION, &SAVE_PASSAGE_OPTION,
             &SEARCH_SAVED_PASSAGES_OPTION, &RANDOM_SAVED_PASSAGE_OPTION,
-            &GET_SAVED_PASSAGE_OPTION, &QUIZ_OPTION, &SET_BIBLE_VERSION_OPTION},
+            &GET_SAVED_PASSAGE_OPTION, &QUIZ_OPTION, &SET_BIBLE_VERSION_OPTION,
+            &GET_VERSION_BOOKS_OPTION},
     .data = {.type = NoData}};

@@ -24,8 +24,9 @@ cJSON *books_parse_json(char *data) {
   return books_arr_copy;
 }
 
+// TODO: implement save_to_file switch
 cJSON *books_get_from_bible_version(CURL *curl, CURLcode *result_code,
-                                    const char *bible_id) {
+                                    const char *bible_id, bool save_to_file) {
   error_if(strlen(bible_id) == 0, "invalid bible_id");
 
   // Verify if information already saved
@@ -36,6 +37,7 @@ cJSON *books_get_from_bible_version(CURL *curl, CURLcode *result_code,
         fread(scan_buff, sizeof(scan_buff[0]), SCANF_BUFF_LEN - 1, file);
     scan_buff[n_read] = '\0';
 
+    // If already saved
     char *substr_pos = strstr(scan_buff, bible_id);
     if (substr_pos != NULL) {
       puts("Reading books data from " BOOKS_FILE);
@@ -69,9 +71,11 @@ cJSON *books_get_from_bible_version(CURL *curl, CURLcode *result_code,
   curl_get_at_url(curl, result_code, &response, url, NULL);
 
   // Write Books to info/books.json
-  file = fopen(BOOKS_FILE, "w");
-  error_if(file == NULL, "failed to open " BOOKS_FILE " in write in w mode");
-  fprintf(file, "%s", response.string);
+  if (save_to_file) {
+    file = fopen(BOOKS_FILE, "w");
+    error_if(file == NULL, "failed to open " BOOKS_FILE " in write in w mode");
+    fprintf(file, "%s", response.string);
+  }
 
   // Parsing Json
   cJSON *res = books_parse_json(response.string);
@@ -88,7 +92,6 @@ const char *book_get_name(cJSON *books_arr, char *input) {
   cJSON *item = NULL;
   cJSON_ArrayForEach(item, books_arr) {
     cJSON *name = cJSON_GetObjectItemCaseSensitive(item, "name");
-    // cJSON *name = cJSON_GetObjectItemCaseSensitive(item, "name");
     cJSON *id = cJSON_GetObjectItemCaseSensitive(item, "id");
     error_if(!cJSON_IsString(name) || !cJSON_IsString(id),
              "books_arr is not in proper format");
