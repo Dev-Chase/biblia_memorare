@@ -23,6 +23,17 @@ typedef enum PassageObjField {
   PassageObjMessage = 1,
   PassageObjContext = 2,
 } PassageObjField;
+
+#define N_PASSAGE_ATTRIBUTES 4
+#define ATTR_INPUT_BUFF_SIZE 16
+
+// Must be in ascending order from 0
+typedef enum PassageAttr {
+  PassageIdAttr = 0, // includes reference
+  PassageMessageAttr = 1,
+  PassageContextAttr = 2,
+  PassageContentAttr = 3,
+} PassageAttr;
 // NOTE: the enum numbers must correspond to their index in the array
 static const char *PASSAGE_OBJ_FIELD_KEYS[3] = {"id", "message", "context"};
 

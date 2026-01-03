@@ -833,7 +833,93 @@ void quiz_option_print_desc(void) {
   puts("quiz - Take a quiz on random saved passages");
 }
 
+void quiz_passage_content(size_t n_passages,
+                          cJSON *quiz_passages[static n_passages]);
+
+// NOTE: returns whether memory needs to be freed
+bool quiz_option_get_passages(InputOption *current_opt, AppEnv env,
+                              cJSON ***quiz_passages, size_t *n_passages) {
+  bool free_memory = false;
+
+  // Either Using Passages from a List or Retrieving Random Ones
+  if (current_opt->data.type == SavedPassageList) {
+    // Copying the Passages from the List
+    *quiz_passages =
+        (cJSON **)malloc(current_opt->data.value.saved_passage_list_len *
+                         sizeof(current_opt->data.value.saved_passage_list[0]));
+    if (quiz_passages == NULL) {
+      fprintf(stderr, "Failed to allocate memory needed for quiz_passages\n");
+      *n_passages = 0;
+      return false;
+    }
+
+    *n_passages = current_opt->data.value.saved_passage_list_len;
+    memcpy(*quiz_passages, current_opt->data.value.saved_passage_list,
+           *n_passages * sizeof(current_opt->data.value.saved_passage_list[0]));
+
+    // Shuffling the Passages
+    for (size_t i = 0; i < *n_passages; i++) {
+      size_t j = (size_t)(rand() % *n_passages);
+      cJSON *tmp = (*quiz_passages)[j];
+      (*quiz_passages)[j] = (*quiz_passages)[i];
+      (*quiz_passages)[i] = tmp;
+    }
+
+  } else {
+    // Getting a Inputted Number of Passages to be Quizzed on
+    *n_passages = 5; // Defaulting to 5 Passages
+    char input_num_buff[INPUT_BUFF_LEN];
+    input_get("How many passages do you want to be quizzed on?: ",
+              INPUT_BUFF_LEN, input_num_buff);
+    long inputted_num = strtol(input_num_buff, (char **)NULL, 10);
+    if (inputted_num > 0) {
+      *n_passages = (size_t)inputted_num;
+    } else {
+      printf("Inputted Number was invalid, defaulting to %zu instead\n",
+             *n_passages);
+    }
+
+    // Allocate Memory for Random Passages
+    *quiz_passages = (cJSON **)malloc(*n_passages * sizeof(cJSON *));
+    free_memory = true;
+    if (quiz_passages == NULL) {
+      fprintf(stderr, "Failed to allocate memory needed for quiz_passages\n");
+      *n_passages = 0;
+      return false;
+    }
+
+    // Getting Random Passages
+    // TODO: implement handling case where more passages are supplied than are
+    // stored in the PASSAGES_FILE (currently will cause infinite loop)
+    puts("Collecting Quiz Passages");
+    for (size_t i = 0; i < *n_passages; i++) {
+      cJSON *random_passage = NULL;
+      bool duplicate_passage = false;
+
+      do {
+        random_passage = passages_get_random_entry(env.saved_passages_json);
+        duplicate_passage = false;
+        for (size_t j = 0; j < i; j++) {
+          if ((*quiz_passages)[j] == random_passage) {
+            duplicate_passage = true;
+            break;
+          }
+        }
+
+      } while (duplicate_passage);
+
+      (*quiz_passages)[i] = random_passage;
+    }
+
+    puts("Successfully Collected Random Quiz Passages!");
+  }
+
+  return free_memory;
+}
+
 bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
+  // TODO: review this next part
+  // here
   bool strict_comparison = false;
   char comparison_input[4] = "\0";
   input_get("Do you want exact comparison (Y/n)?: ", sizeof(comparison_input),
@@ -843,81 +929,144 @@ bool quiz_option_fn(InputOption *current_opt, AppEnv env) {
     strict_comparison = true;
     printf("Okay, I'll be strict.\n");
   }
+  // to here
 
+  // Getting Quiz Passages
   cJSON **quiz_passages = NULL;
   size_t n_passages = 0;
   size_t n_correct = 0;
-  bool free_memory = false;
+  bool free_memory =
+      quiz_option_get_passages(current_opt, env, &quiz_passages, &n_passages);
 
-  // Either Using Passages from a List or Retrieving Random Ones
-  if (current_opt->data.type == SavedPassageList) {
-    // Copying the Passages from the List
-    quiz_passages =
-        (cJSON **)malloc(current_opt->data.value.saved_passage_list_len *
-                         sizeof(current_opt->data.value.saved_passage_list[0]));
-    if (quiz_passages == NULL) {
-      fprintf(stderr, "Failed to allocate memory needed for quiz_passages\n");
-      return false;
-    }
-
-    n_passages = current_opt->data.value.saved_passage_list_len;
-    memcpy(quiz_passages, current_opt->data.value.saved_passage_list,
-           n_passages * sizeof(current_opt->data.value.saved_passage_list[0]));
-
-    // Shuffling the Passages
-    for (size_t i = 0; i < n_passages; i++) {
-      size_t j = (size_t)(rand() % n_passages);
-      cJSON *tmp = quiz_passages[j];
-      quiz_passages[j] = quiz_passages[i];
-      quiz_passages[i] = tmp;
-    }
-
-  } else {
-    // Getting a Inputted Number of Passages to be Quizzed on
-    n_passages = 5; // Defaulting to 5 Passages
-    char input_num_buff[INPUT_BUFF_LEN];
-    input_get("How many passages do you want to be quizzed on?: ",
-              INPUT_BUFF_LEN, input_num_buff);
-    long inputted_num = strtol(input_num_buff, (char **)NULL, 10);
-    if (inputted_num > 0) {
-      n_passages = (size_t)inputted_num;
-    } else {
-      printf("Inputted Number was invalid, defaulting to %zu instead\n",
-             n_passages);
-    }
-
-    // Allocate Memory for Random Passages
-    quiz_passages = (cJSON **)malloc(n_passages * sizeof(cJSON *));
-    free_memory = true;
-    if (quiz_passages == NULL) {
-      fprintf(stderr, "Failed to allocate memory needed for quiz_passages\n");
-      return false;
-    }
-
-    // Getting Random Passages
-    // TODO: implement handling case where more passages are supplied than are
-    // stored in the PASSAGES_FILE (currently will cause infinite loop)
-    puts("Collecting Quiz Passages");
-    for (size_t i = 0; i < n_passages; i++) {
-      cJSON *random_passage = NULL;
-      bool duplicate_passage = false;
-
-      do {
-        random_passage = passages_get_random_entry(env.saved_passages_json);
-        duplicate_passage = false;
-        for (size_t j = 0; j < i; j++) {
-          if (quiz_passages[j] == random_passage) {
-            duplicate_passage = true;
-            break;
-          }
-        }
-
-      } while (duplicate_passage);
-
-      quiz_passages[i] = random_passage;
-    }
-    puts("Successfully Collected Random Quiz Passages!");
+  if (quiz_passages == NULL) {
+    printf("My quiz passages are empty!\n");
+    return false;
   }
+
+  if (n_passages == 0) {
+    printf("I don't have any passages to quiz you on!\n");
+    return false;
+  }
+
+  // List Passage Attributes for User's Reference
+  printf("Here are the available passage attributes:\n");
+  printf("id/name/reference - The passage's id and reference\n");
+  printf("content - The passage's contents/text\n");
+  printf("message - The saved message associated with the passage\n");
+  printf("context - The saved context associated with the passage\n");
+  char attr_input_buff[ATTR_INPUT_BUFF_SIZE];
+
+  // Determine what Kind of Quiz it will be
+  // (What the user will guess, what the user will be given to guess of of, and
+  // how it will be verified)
+  // What the user will guess
+  printf("What do you want to be quizzed on? (Tell me one by one and write "
+         "'stop' when you're done)\n");
+  size_t n_guessing = 0;
+  PassageAttr guessing_attributes[N_PASSAGE_ATTRIBUTES];
+  do {
+    input_get("Attribute: ", ATTR_INPUT_BUFF_SIZE, attr_input_buff);
+    if (strcmp(attr_input_buff, "stop") == 0) {
+      break;
+    }
+
+    if (strcmp(attr_input_buff, "id") == 0 ||
+        strcmp(attr_input_buff, "name") == 0 ||
+        strcmp(attr_input_buff, "reference") == 0) {
+      guessing_attributes[n_guessing] = PassageIdAttr;
+    } else if (strcmp(attr_input_buff, "message") == 0) {
+      guessing_attributes[n_guessing] = PassageMessageAttr;
+    } else if (strcmp(attr_input_buff, "context") == 0) {
+      guessing_attributes[n_guessing] = PassageContextAttr;
+    } else if (strcmp(attr_input_buff, "content") == 0 ||
+               strcmp(attr_input_buff, "text") == 0) {
+      guessing_attributes[n_guessing] = PassageContentAttr;
+    }
+
+    n_guessing++;
+  } while (n_guessing < N_PASSAGE_ATTRIBUTES - 1);
+
+  // What the user will be given
+  size_t n_given = 0;
+  PassageAttr given_attributes[N_PASSAGE_ATTRIBUTES];
+  size_t n_given_hints = 0;
+  PassageAttr given_hint_attributes[N_PASSAGE_ATTRIBUTES];
+  // Default to the last available attribute if all but one are going to be
+  // guessed
+  if (n_guessing == N_PASSAGE_ATTRIBUTES - 1) {
+    for (PassageAttr i = 0; i < N_PASSAGE_ATTRIBUTES; i++) {
+      bool present = false;
+      for (PassageAttr j = 0; j < n_guessing; j++) {
+        if (j == i) {
+          present = true;
+          break;
+        }
+      }
+
+      if (!present) {
+        given_attributes[0] = i;
+        break;
+      }
+    }
+
+    n_given = 1;
+  } else {
+    printf(
+        "What do you want to be given for each passage? (Tell me one by one "
+        "and write "
+        "'stop' when you're done) (write hint to have an attribute given as a "
+        "hint when requested)\n");
+    do {
+      input_get("Attribute: ", ATTR_INPUT_BUFF_SIZE, attr_input_buff);
+      if (strcmp(attr_input_buff, "stop") == 0) {
+        break;
+      }
+      bool hint = false;
+      size_t hint_len = strlen("hint ");
+      if (strncmp(attr_input_buff, "hint ", hint_len) == 0) {
+        hint = true;
+        memmove(attr_input_buff, attr_input_buff + hint_len,
+                strlen(attr_input_buff) - hint_len);
+      }
+
+      PassageAttr new_attr;
+      if (strcmp(attr_input_buff, "id") == 0 ||
+          strcmp(attr_input_buff, "name") == 0 ||
+          strcmp(attr_input_buff, "reference") == 0) {
+        new_attr = PassageIdAttr;
+      } else if (strcmp(attr_input_buff, "message") == 0) {
+        new_attr = PassageMessageAttr;
+      } else if (strcmp(attr_input_buff, "context") == 0) {
+        new_attr = PassageContextAttr;
+      } else if (strcmp(attr_input_buff, "content") == 0 ||
+                 strcmp(attr_input_buff, "text") == 0) {
+        new_attr = PassageContentAttr;
+      }
+
+      if (hint) {
+        given_attributes[n_given] = new_attr;
+        n_given_hints++;
+      } else {
+        given_hint_attributes[n_given_hints] = new_attr;
+        n_given++;
+      }
+    } while (n_given + n_given_hints < N_PASSAGE_ATTRIBUTES - n_guessing);
+  }
+
+  // How it will be verified (strictly, loosely, not at all)
+
+  // [there are three associated variables: what will be given, what will be
+  // guessed, how it will be guessed, and what kind of hints will be given (part
+  // of what will be given)]
+
+  // What can be given: any comination of passage attributes (see passage.h)
+  //    plus hints
+  // What can be guessed: any combination of passage attributes
+  // How it can be guessed: either by verifying with the computer or doing it
+  // mentally (in other words, either the answer is verified or not, or some in
+  // between if more advanced textual comparison comes into play)
+  //    three modes: strict verification, loose verification, and no
+  //    verification
 
   // Guessing
   for (size_t i = 0; i < n_passages; i++) {
