@@ -77,9 +77,9 @@ bool passage_get_book_name_from_passage_string(
   // Add first word to book name
   strncat(book_name, token, MAX_BOOK_NAME_LEN - 1);
 
-  // End when Token is empty or a digit or parenthesis
+  // End when Token is empty or a digit or square bracket
   while ((token = strtok(NULL, " ")) != NULL && !isdigit(token[0]) &&
-         token[0] != '(') {
+         token[0] != '-') {
     strncat(book_name, " ",
             MAX_BOOK_NAME_LEN - strnlen(book_name, MAX_BOOK_NAME_LEN - 1) - 1);
 
@@ -161,11 +161,11 @@ bool passage_info_get_from_string(
 
     // Getting Bible Version Abbreviation, if inputted
     if (passage_input[0] != '(') {
-      n_captured = sscanf(passage_input, "%*[^(](%23[^)]) - %9s",
+      n_captured = sscanf(passage_input, "%*[^-]- (%23[^)]) - %9s",
                           bible_version_abbr, language_id);
     } else {
-      n_captured = sscanf(passage_input, "(%23[^)]) - %9s", bible_version_abbr,
-                          language_id);
+      n_captured = sscanf(passage_input, "- (%23[^)]) - %9s",
+                          bible_version_abbr, language_id);
     }
   }
 
@@ -197,8 +197,8 @@ bool passage_info_get_from_string(
   return true;
 }
 
-// NOTE: does not append ": " to message
-// Returns whether input was valid
+// NOTE: does not append ": " to message Returns whether input
+// was valid
 bool passage_info_get_from_input(char *message, PassageInfo *passage,
                                  CURL *curl, CURLcode *result_code,
                                  BibleVersion *version, cJSON *bibles_arr,

@@ -12,6 +12,7 @@ extern "C" {
 #define BIBLES_URL "https://api.scripture.api.bible/v1/bibles"
 #define BIBLE_ABBR_BUFF_SIZE 24
 #define LANGUAGE_ID_BUFF_SIZE 10
+#define CATHOLIC_DESC "Catholic"
 
 typedef struct BibleVersion {
   const char *id;

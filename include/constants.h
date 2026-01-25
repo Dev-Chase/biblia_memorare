@@ -16,6 +16,7 @@
 #define ENGLISH_LANGUAGE_ID "eng"
 #define DEFAULT_LANGUAGE_ID ENGLISH_LANGUAGE_ID
 #define WEB_BIBLE_ID "9879dbb7cfe39e4d-02"
+#define KJV_BIBLE_ID "de4e12af7f28f599-01"
 #define BIBLES_FILE "./info/bibles.json"
 #define BOOKS_FILE "./info/books.json"
 #define PASSAGES_FILE "./info/passages.json"

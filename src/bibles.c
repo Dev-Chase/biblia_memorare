@@ -63,7 +63,7 @@ BibleVersion bible_version_from_abbreviation(cJSON *bibles_arr,
   // Check if ESV
   if (strcmp(capitalized_abbr, ESV_ABBR) == 0) {
     return (BibleVersion){
-        .id = WEB_BIBLE_ID, // NOTE: used for retrieving book names
+        .id = KJV_BIBLE_ID,
         .language_id = ENGLISH_LANGUAGE_ID,
         .abbr = ESV_ABBR,
         .name = ESV_NAME,
@@ -76,12 +76,17 @@ BibleVersion bible_version_from_abbreviation(cJSON *bibles_arr,
   cJSON *item = NULL;
   cJSON_ArrayForEach(item, bibles_arr) {
     cJSON *id = cJSON_GetObjectItemCaseSensitive(item, "id");
+    cJSON *name = cJSON_GetObjectItemCaseSensitive(item, "nameLocal");
+
     cJSON *language = cJSON_GetObjectItemCaseSensitive(item, "language");
     cJSON *json_language_id = cJSON_GetObjectItemCaseSensitive(language, "id");
-    cJSON *name = cJSON_GetObjectItemCaseSensitive(item, "nameLocal");
+
     cJSON *abbr = cJSON_GetObjectItemCaseSensitive(item, "abbreviation");
     cJSON *abbr_local =
         cJSON_GetObjectItemCaseSensitive(item, "abbreviationLocal");
+
+    cJSON *desc = cJSON_GetObjectItemCaseSensitive(item, "description");
+
     error_if(!cJSON_IsString(name) || !cJSON_IsString(abbr) ||
                  !cJSON_IsString(abbr_local) ||
                  !cJSON_IsString(json_language_id) || !cJSON_IsString(id),
@@ -91,17 +96,26 @@ BibleVersion bible_version_from_abbreviation(cJSON *bibles_arr,
                  json_language_id->valuestring == NULL ||
                  id->valuestring == NULL,
              "invalid strings in bibles_arr");
+
     if (strcmp(abbr->valuestring, capitalized_abbr) == 0 ||
         strcmp(abbr_local->valuestring, capitalized_abbr) == 0) {
-      res = (BibleVersion){
-          .id = id->valuestring,
-          .language_id = json_language_id->valuestring,
-          .name = name->valuestring,
-          .abbr = abbr_local->valuestring,
-          .is_esv = false,
-      };
+      bool current_res_has_right_language =
+          res.id && strcmp(res.language_id, language_id) == 0;
+      if (!current_res_has_right_language ||
+          strcmp(json_language_id->valuestring, language_id) == 0) {
+        res = (BibleVersion){
+            .id = id->valuestring,
+            .language_id = json_language_id->valuestring,
+            .name = name->valuestring,
+            .abbr = abbr_local->valuestring,
+            .is_esv = false,
+        };
+      }
 
-      if (strcmp(json_language_id->valuestring, language_id) == 0) {
+      // Prefer Bibles that match a given language as well as Catholic bibles
+      if (desc->valuestring != NULL &&
+          strcmp(desc->valuestring, CATHOLIC_DESC) == 0) {
+        printf("Found a Catholic version!\n");
         break;
       }
     }

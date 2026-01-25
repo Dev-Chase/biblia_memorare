@@ -105,7 +105,8 @@ void input_switch_option(InputOption *current_opt, const InputOption *new_opt) {
 
 bool input_info_req_check(char input_buff[static INPUT_BUFF_LEN]) {
   return (strcmp(input_buff, "info") == 0) ||
-         (strcmp(input_buff, "help") == 0) || (strcmp(input_buff, "list") == 0);
+         (strcmp(input_buff, "help") == 0) ||
+         (strcmp(input_buff, "list") == 0) || (strcmp(input_buff, "ls") == 0);
 }
 
 bool current_opt_req_check(char input_buff[static INPUT_BUFF_LEN]) {
@@ -1194,6 +1195,8 @@ bool get_version_books_option_fn(InputOption *current_opt, AppEnv env) {
   char input_buff[INPUT_BUFF_LEN] = "\0";
   const char *input_start = "books";
   size_t input_start_len = strlen(input_start);
+  // TODO: review necessity for double-checking that the input started with
+  // input_start since it will have to had in order to get this far
   if (strncmp(current_opt->data.input_buff, input_start, input_start_len) ==
           0 &&
       current_opt->data.input_buff[input_start_len] == ' ') {
@@ -1213,6 +1216,8 @@ bool get_version_books_option_fn(InputOption *current_opt, AppEnv env) {
   if (version.id == NULL) {
     version = *env.bible_version;
   }
+  printf("Version Abbr: %s, Version Name: %s, Version Language: %s\n",
+         version.abbr, version.name, version.language_id);
 
   // Print the Books List
   cJSON *version_books =
